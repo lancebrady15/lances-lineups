@@ -1,0 +1,13 @@
+---
+title: "Data Sources"
+format: html
+editor: visual
+---
+
+This page lists the datasets used in the blog.
+
+### Blog Post #1: Lineup Protection  
+📄 **[Download statcast_data.csv](https://lances-lineups-data.s3.amazonaws.com/statcast_data.csv)**  
+
+### Blog Post #2: Swing Profiles  
+📄 **[Download statcast_data.csv](https://lances-lineups-data.s3.amazonaws.com/statcast_data.csv)**
