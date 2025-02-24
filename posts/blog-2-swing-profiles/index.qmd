@@ -1,0 +1,15 @@
+---
+title: "Blog Post #2: Swing Profiles"
+author: "Lance Brady"
+date: "2025-02-26"
+categories: [swing profiles, lineups, statcast]
+format: html
+editor: visual
+image: blog2.jpg
+---
+
+## Introduction to Swing Profile Data
+
+Talk about origin of data, what has been done.
+
+## Current Findings

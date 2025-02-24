@@ -1,0 +1,18 @@
+---
+title: "Welcome to Lance's Lineups ⚾ "
+listing:
+  contents: posts
+  sort: "date desc"
+  type: default
+  categories: true
+  sort-ui: false
+  filter-ui: false
+page-layout: full
+title-block-banner: false
+---
+I’m **Lance Brady**, a senior at Yale University majoring in Statistics & Data Science.  
+For my senior thesis, I’m exploring baseball lineup optimization using data-driven methods.  
+
+Here are some of my articles and thoughts on lineup optimization! 
+
+---

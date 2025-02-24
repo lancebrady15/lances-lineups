@@ -1,0 +1,26 @@
+project:
+  type: website
+  execute-dir: project
+
+
+website:
+  title: "Lance's Lineups"
+  navbar:
+    right:
+      - text: "Home"
+        href: index.qmd
+      - text: "Data"
+        href: data.qmd
+      - icon: linkedin
+        href: https://www.linkedin.com/in/lance-brady-979b4a196/
+      - icon: github
+        href: https://github.com/lancebrady15/lances-lineups
+  page-footer: "© 2025. All rights reserved."
+
+format:
+  html:
+    theme: default
+    css: styles.css
+
+
+

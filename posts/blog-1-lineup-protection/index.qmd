@@ -1,0 +1,354 @@
+---
+title: "Blog Post #1: Lineup Protection"
+author: "Lance Brady"
+date: "2025-02-18"
+categories: [lineup protection, lineups, statcast]
+format: html
+editor: visual
+image: blog1.jpg
+---
+
+## Introduction to Lineup Protection
+
+Batting order optimization is a heavily studied aspect of baseball decision-making, where teams construct lineups to maximize run production. Most studies in this area assume that hitters in the lineup are independent of one another. However, the concept of lineup protection—the idea that a hitter’s performance is influenced by the quality of the hitter after them—remains debated within the sabermetrics community. Although batting order decisions may offer only marginal advantages in expected runs, in an era where every competitive edge counts, even subtle effects like lineup protection deserve closer examination. The theory behind lineup protection is that a hitter with a good hitter behind them will be harder to pitch around because pitchers won't want to face the guy after him either, particularly with more runners on base. Thus, walks would decrease, and that would mean more fastballs, strikes, and pitches over the plate, essentially increasing the probability for productive hitting.
+
+There are two main ways to study lineup protection:
+
+**Pitcher-Centric Analysis:** Examining how pitchers alter their approach based on the quality next hitter. Previous research using 30 hitter pairs since the advent of Statcast suggested that protected hitters see an average of 0.25% more strikes compared to league average, and 0.07% more pitches down the middle of the zone. This would lead to 6 additional strikes and 2 additional pitches down the middle over a season. This study was extremely limited, however, and did not account for situations without protection, only used 30 pairs of hitters, and only compared the strike percentage a protected hitter received to the league average of that year, not to the strike percentage they had in other non-protected plate appearances. If lineup protection were to exist, teams should avoid wasting lineup protection on free swingers (putting free swingers before "protectors") so that the protection is not wasted on hitters who would swing at a higher rate anyway (The Paraball Notes, 2024). Quantitatively, the hitter who bats behind you SHOULD impact the pitches you see, because the run expectancy of certain plays occurring (like walks) would change based on who the following batter is (Weinberg, 2013). Evidence of certain pairs often seems to point to the opposite, with a 2012 evaluation of players hitting after Andrew McCutchen, Ryan Braun, and Joey Votto showing no evidence that pitchers were pitching them differently based on the protection they had (Cameron, 2012).
+
+Hall of Famer Miguel Cabrera attributed part of his power struggles early in the 2019 season to a lack of lineup protection, essentially calling out productive-yet-not-spectacular hitter behind him, Niko Goodrum, saying, "In the past... I got a big bat behind me. You see the way guys pitch me? that explains everything." His manager responded by saying his statement was "crazy." Data revealed that he wasn't getting particularly fewer fastballs, strikes, or good pitches to hit in general, and that in his particular case, there wasn't evidence for lineup protection (Stavenhagen, 2019).
+
+**Hitter Outcome Analysis:** Investigating whether the quality of the next hitter influences the current hitter’s performance. Pre-Pitch F/X research found that pitchers who know that a good hitter is up next will "pitch around" the current hitter, resulting in significantly more walks, and moderately more strikeouts. However, it found that when it comes to putting the ball in play, there was no significant impact (Tango, 2006). Much of the sabermetric community says that lineup protection is a myth, and that a player's production is almost solely determined by their own skills; luck and random variation also play a small role (Ambrosino, 2011).\
+
+However, a study in 2011 found that power numbers did have significant differences in situations of potential lineup protection (Phillips, 2011).
+
+Much of this hitter outcome analysis is rather anecdotal, focusing on specific players and how they fare with protection. Using over 3000 Plate Appearances from Pete Alonso's career using data from before his 2024 season, we can see higher slugging percentages with better hitters behind him, along with being 11% more likely to homer. With worse protection, he is more likely to walk, although his strikeout rates go against previous research and actually decrease with poor hitters behind him (Britton, 2024). Other research takes specific teams and analyzes whether the topic of lineup protection even applies and whether it serves a purpose in that roster's decision-making. When the Diamondbacks acquired Mark Trumbo in 2014, writers brought up the fact that even though Trumbo's power threat could serve to protect Paul Goldschmidt, Trumbo may not even be much better than other Diamondbacks hitters who could replace him in terms of offensive threat in general (Wiser, 2014). In 2015, Billy Hamilton pointed to a different sort of offensive advantage owing to the hitter behind him–knowing Joey Votto was hitting after him, an incredibly selective hitter often with long counts, allowed Hamilton to be patient and wait for the right pitch to steal on. In this situation, with a small sample size, the threat of Votto was preventing opposing pitchers from throwing fastballs with Hamilton on base, allowing Hamilton to get better base-stealing opportunities (Petriello, 2015).
+
+It is worth noting that many within baseball discuss lineup protection with certainty. Alonso had pushed for J.D. Martinez to join and hit behind him for the Mets in 2024. Interviews with several within the game in 2015 resulted in a plethora of answers, from Joe Girardi saying lineup protection was most significant in lefty-righty matchups, Madison Bumgarner saying he doesn't pay attention to the on-deck circle, Tim Hudson saying that it's "foolish if you don't look at the next hitter," and multiple other pitchers saying it is a factor in their decision-making, especially later in the game.
+
+## Aim
+
+This article aims to provide further insights into lineup protection using pitch-by-pitch data Statcast data from the 2024 Major League Baseball season, focusing on analyzing hitter outcomes. While literature is mixed and often negative on the existence of lineup protection, it often uses anecdotal evidence, and a more thorough investigation is necessary, especially one using the more advanced expected statistics we now have available.
+
+## Setup
+
+We would like our independent variables to be the following.
+
+-   Current batter and pitcher random effects
+
+-   Current hitter's handedness and underlying quality (xwOBA)
+
+-   Next hitter's handedness and underlying quality (xwOBA)
+
+-   Base-out state
+
+-   Inning
+
+-   Run differential
+
+Previous studies have looked at protection as a binary independent variable, but that is a narrow view on lineup protection. Lineup protection must be considered as a continuous variable because some players will protect more than others.
+
+Our outcome variable will be that plate appearance's xwOBA, which will essentially give us the quality of that plate appearance based on the independent variables We would then like to see what factor the quality of the next batter has in the outcome.
+
+## Methods
+
+First, we loaded in our libraries and read the data, which contains almost every pitch from the 2024 season (excluding when poor data was retrieved).
+
+```{r}
+#| echo: false
+library(tidyverse)
+library(lme4)
+library(lmerTest)
+library(ggeffects)
+library(readr)
+```
+
+```{r}
+statcast_url = "https://lances-lineups-data.s3.us-east-2.amazonaws.com/statcast_data.csv"
+statcast_data <- read_csv(statcast_url)
+```
+
+For each plate appearance, we aggregate key variables. We calculate `pa_xwOBA` as the average `estimated_woba_using_speedangle` for that plate appearance. We also compute run differential as the difference between `bat_score` and `fld_score` using the first pitch in the plate appearance, which reflects the score before the plate appearance starts.
+
+```{r}
+pa_data <- statcast_data %>%
+  group_by(game_pk, at_bat_number) %>%
+  summarize(
+    batter = first(batter),
+    pitcher = first(pitcher),
+    inning = first(inning),
+    batter_handedness = first(stand),
+    inning_topbot = first(inning_topbot),
+    # Calculate PA xwOBA from pitch-by-pitch data:
+    pa_xwOBA = mean(estimated_woba_using_speedangle, na.rm = TRUE),
+    outs_when_up = first(outs_when_up),
+    # Compute run differential at the time the PA begins:
+    run_diff = first(bat_score) - first(fld_score),
+    # Capture final base occupancy for this PA:
+    on_1b = last(on_1b),
+    on_2b = last(on_2b),
+    on_3b = last(on_3b),
+    .groups = "drop"
+  ) %>%
+  arrange(game_pk, inning, inning_topbot, at_bat_number)
+
+```
+
+We then find the next batter in the lineup and get their handedness.
+
+```{r}
+pa_data <- pa_data %>%
+  arrange(game_pk, inning_topbot, at_bat_number) %>%
+  mutate(
+    potential_next_batter = lead(batter),
+    potential_next_batter_handedness = lead(batter_handedness)
+  ) %>%
+  ungroup()
+```
+
+Let's also create a single baserunner state variable.
+
+```{r}
+pa_data <- pa_data %>%
+  mutate(
+    baserunner_state = case_when(
+      !is.na(on_1b) & is.na(on_2b) & is.na(on_3b) ~ "1B",
+      is.na(on_1b) & !is.na(on_2b) & is.na(on_3b) ~ "2B",
+      is.na(on_1b) & is.na(on_2b) & !is.na(on_3b) ~ "3B",
+      !is.na(on_1b) & !is.na(on_2b) & is.na(on_3b) ~ "1B-2B",
+      !is.na(on_1b) & is.na(on_2b) & !is.na(on_3b) ~ "1B-3B",
+      is.na(on_1b) & !is.na(on_2b) & !is.na(on_3b) ~ "2B-3B",
+      !is.na(on_1b) & !is.na(on_2b) & !is.na(on_3b) ~ "Loaded",
+      TRUE ~ "Empty"
+    )
+  )
+```
+
+```{r}
+# SPECIAL CASE: Remove next batter for bottom 9th+ with 2 outs and bases loaded
+pa_data <- pa_data %>%
+  mutate(
+    bases_loaded = ifelse(!is.na(on_1b) & !is.na(on_2b) & !is.na(on_3b), 1, 0),
+    potential_next_batter = ifelse(inning_topbot == "Bot" & inning >= 9 & outs_when_up == 2 & bases_loaded == 1, NA, potential_next_batter)
+  ) %>%
+  select(-bases_loaded)
+```
+
+We will then want to make sure all hitters considered (and next hitters) are qualified, so that their xwOBA over the season has stabilized somewhat. This is a threshold of 502 plate appearances.
+
+```{r}
+# Count the number of plate appearances per batter (as the current batter)
+batter_counts <- pa_data %>%
+  group_by(batter) %>%
+  summarize(pa_count = n(), .groups = "drop")
+
+# Count the appearances for batters when they appear as the potential next batter (on-deck)
+potential_next_batter_counts <- pa_data %>%
+  group_by(potential_next_batter) %>%
+  summarize(next_pa_count = n(), .groups = "drop")
+
+# Define the qualification threshold (502 PAs)
+qualified_threshold <- 502
+
+# Identify batters who have at least 502 PAs as the current batter
+qualified_batters <- batter_counts %>%
+  filter(pa_count >= qualified_threshold) %>%
+  pull(batter)
+
+# Identify batters who have at least 502 PAs as the potential next batter (on-deck)
+qualified_next_batters <- potential_next_batter_counts %>%
+  filter(next_pa_count >= qualified_threshold) %>%
+  pull(potential_next_batter)
+
+# Filter pa_data to retain only those rows where both the current batter 
+# and the potential next batter (on-deck hitter) are qualified.
+pa_data_qualified <- pa_data %>%
+  filter(
+    batter %in% qualified_batters,
+    !is.na(potential_next_batter),         # Ensure there is a potential next batter
+    potential_next_batter %in% qualified_next_batters
+  )
+
+
+```
+
+We then calculate the current batter's season-long xwOBA and the outcome difference between each plate appearance and that baseline xwOBA.
+
+```{r}
+# (a) For each current batter, calculate their season-long baseline PA xwOBA.
+current_baseline <- pa_data_qualified %>%
+  group_by(batter) %>%
+  summarize(baseline_current = mean(pa_xwOBA, na.rm = TRUE), .groups = "drop")
+
+# (b) Merge the baseline back into our data and compute outcomeDiff:
+# outcomeDiff = PA xwOBA - current batter's baseline xwOBA.
+pa_data_qualified <- pa_data_qualified %>%
+  left_join(current_baseline, by = "batter") %>%
+  mutate(outcomeDiff = pa_xwOBA - baseline_current)
+```
+
+We then calculate the next batter's season-long xwOBA.
+
+```{r}
+# Next batter's baseline xwOBA
+next_baseline <- pa_data_qualified %>%
+  group_by(potential_next_batter) %>%
+  summarize(baseline_next = mean(pa_xwOBA, na.rm = TRUE), .groups = "drop")
+
+# Merge next batter's baseline
+pa_data_qualified <- pa_data_qualified %>%
+  left_join(next_baseline, by = c("potential_next_batter" = "potential_next_batter"))
+
+# nextHitterSkill
+pa_data_qualified <- pa_data_qualified %>%
+  mutate(
+    nextHitterSkill = baseline_next
+  )
+  
+```
+
+Now, let's create our mixed-effects linear model and graph!
+
+```{r}
+pa_data_qualified$batter_handedness <- factor(pa_data_qualified$batter_handedness)
+pa_data_qualified$potential_next_batter_handedness <- factor(pa_data_qualified$potential_next_batter_handedness)
+
+# Fit model!
+m_protection <- lmer(
+  outcomeDiff ~ nextHitterSkill + batter_handedness + potential_next_batter_handedness + 
+    baserunner_state + outs_when_up + inning + run_diff +
+    (1 | batter) + (1 | pitcher),
+  data = pa_data_qualified
+)
+
+
+summary(m_protection)
+```
+
+Based on our mixed-effects model, we find that when we account for all of the aspects of the game situation, the next batter's skill level has a statistically significant effect on the outcomeDiff, meaning better on-deck hitters (above league average) correlate with higher performance (relative to the batter’s own baseline). We find that a 1-unit increase in xwOBA is associated with a 0.3246 increase in the current PA's outcomeDiff.
+
+Our random variation at the pitcher level (\~0.015) shows us that some pitchers systematically allow slightly higher or lower outcomeDiff.
+
+## Visualizations
+
+```{r}
+ggplot(pa_data_qualified, aes(x = nextHitterSkill, y = outcomeDiff)) +
+  geom_point(color = "red", alpha = 0.3) +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +
+  labs(
+    title = "NextHitterSkill vs. OutcomeDiff (Loess Smooth)",
+    x = "Next Hitter Skill (xwOBA)",
+    y = "Outcome Difference"
+  ) +
+  theme_minimal()
+
+```
+
+Let's also make a visualization showing how different pitchers are in terms of their adjustments to next batters. Pitcher's random effects vary as expected: some pitchers tend to be associated with larger absolute changes in `outcomeDiff` than others. However, this is not statistically significant using an ANOVA test.
+
+```{r}
+m_protection_slope <- lmer(
+  outcomeDiff ~ nextHitterSkill + batter_handedness + potential_next_batter_handedness +
+    baserunner_state + outs_when_up + inning + run_diff +
+    # (1 + nextHitterSkill | pitcher) adds a random slope for nextHitterSkill
+    (1 + nextHitterSkill | pitcher) +
+    (1 | batter),
+  data = pa_data_qualified
+)
+
+summary(m_protection_slope)
+
+anova(m_protection, m_protection_slope, refit = FALSE)
+
+```
+
+```{r}
+ranefs <- ranef(m_protection_slope)
+
+# This is a list with $pitcher and $batter (since you have random effects for both).
+pitcher_re <- ranefs$pitcher
+# Convert to a data frame
+pitcher_re_df <- as.data.frame(pitcher_re)
+
+# The data frame might have columns (Intercept) and nextHitterSkill
+# We'll rename them for clarity:
+names(pitcher_re_df) <- c("random_intercept", "random_slope_for_skill")
+
+# Add pitcher ID as a column
+pitcher_re_df$pitcher_id <- rownames(pitcher_re)
+
+```
+
+```{r}
+ggplot(pitcher_re_df, aes(x = random_slope_for_skill)) +
+  geom_histogram(bins = 30, fill = "darkgreen", color = "white") +
+  labs(
+    title = "Distribution of Pitcher Random Slopes for nextHitterSkill",
+    x = "Random Slope (deviation from average slope)",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+```
+
+Let's list out the top and bottom 5 pitchers in terms of their random effects.
+
+```{r}
+library(dplyr)
+
+# 1. Extract the random effects for pitchers
+pitcher_random_effects <- ranef(m_protection)$pitcher
+
+# 2. Convert it to a data frame and rename the random intercept column
+pitcher_re_df <- pitcher_random_effects %>%
+  as.data.frame() %>%
+  rename(random_intercept = `(Intercept)`) %>%
+  mutate(pitcher_id = row.names(pitcher_random_effects))
+
+# 3. Sort by descending random_intercept to identify top/bottom pitchers
+pitcher_re_sorted <- pitcher_re_df %>%
+  arrange(desc(random_intercept))
+
+# 4. Grab the top 5 and bottom 5
+top_5_pitchers <- head(pitcher_re_sorted, 5)
+bottom_5_pitchers <- tail(pitcher_re_sorted, 5)
+
+# 5. Print or inspect results
+cat("Top 5 Pitchers by Random Effect:\n")
+print(top_5_pitchers)
+
+cat("\nBottom 5 Pitchers by Random Effect:\n")
+print(bottom_5_pitchers)
+```
+
+## Discussion
+
+This study, although rather simple, tackles some of the problems with sabermetrics' view of lineup protection. By accounting for different game situations, we find that the skill of the next batter does have a statistically significant impact on the xwOBA of the current one. This will have significant implications for lineup construction, given that we have found a way to make players better simply by making the players hitting behind them better.
+
+Why is it important –\> Player evaluation and player valuation, iumplications for fantasy sports, projections.
+
+## References
+
+Ambrosino, D. (2011, November 30). *Orders of protection*. The Hardball Times. <https://tht.fangraphs.com/orders-of-protection/>
+
+Bradbury, J. C., & Drinen, D. J. (2007). Pigou at the plate. *Journal of Sports Economics*, *9*(2), 211-224. <https://doi.org/10.1177/1527002507300178>
+
+Britton, T. (2024, April 26). J.D. Martinez will be Pete Alonso’s protection in Mets lineup. Does that matter? *The New York Times*. <https://www.nytimes.com/athletic/5443604/2024/04/26/mets-pete-alonso-jd-martinez-lineup/>
+
+Cameron, D. (2012, May 25). *Cameron: McCutchen disproves lineup protection*. ESPN.com. <https://insider.espn.com/mlb/insider/story/_/id/7970598/andrew-mccutchen-another-example-why-lineup-protection-myth-mlb>
+
+How to quantify lineup protection in baseball — The Paraball notes. (2024, April 9). *The Paraball Notes*. <https://www.paraballnotes.com/blog/how-to-quantify-lineup-protection-in-baseball>
+
+Laurila, D. (2016, July 14). *Player’s view: Does lineup protection exist?* FanGraphs Baseball. <https://blogs.fangraphs.com/players-view-does-lineup-protection-exist/>
+
+Petriello, M. (2015, April 13). *Billy Hamilton’s reverse lineup protection*. FanGraphs Baseball. <https://blogs.fangraphs.com/billy-hamiltons-reverse-lineup-protection/>
+
+Phillips, D. C. (2011). You're hurting my game: Lineup protection and injuries in Major League Baseball. *Journal of Quantitative Analysis in Sports*, *7*(3). <https://doi.org/10.2202/1559-0410.1296>
+
+Stavenhagen, C. (2019, May 7). The (latest) numbers behind Miguel Cabrera’s remarks on lineup protection. *The New York Times*. <https://www.nytimes.com/athletic/965467/2019/05/07/the-latest-numbers-behind-miguel-cabreras-remarks-on-lineup-protection/>
+
+Tango, T. (2006, April 7). *Pitching around batters*. The Hardball Times. <https://tht.fangraphs.com/pitching-around-batters/>
+
+Weinberg, N. (2013, January 1). *Lineup protection: Fact or fiction?* New English D. <https://newenglishd.com/2013/01/01/lineup-protection-fact-or-fiction/>
+
+Wiser, J. (2014, February 19). *Let’s talk about lineup protection*. Inside the 'Zona. <https://insidethezona.com/2014/02/lets-talk-lineup-protection/>
