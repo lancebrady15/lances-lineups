@@ -265,8 +265,11 @@ The following object is masked from 'package:stats':
 </div>
 </div>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>statcast_url <span class="ot">=</span> <span class="st">"https://lances-lineups-data.s3.us-east-2.amazonaws.com/statcast_data.csv"</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>statcast_data <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(statcast_url)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stderr">
 <pre><code>Rows: 701557 Columns: 113
 ── Column specification ────────────────────────────────────────────────────────
@@ -282,6 +285,8 @@ date  (1): game_date
 </div>
 <p>For each plate appearance, we aggregate key variables. We calculate <code>pa_xwOBA</code> as the average <code>estimated_woba_using_speedangle</code> for that plate appearance. We also compute run differential as the difference between <code>bat_score</code> and <code>fld_score</code> using the first pitch in the plate appearance, which reflects the score before the plate appearance starts.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>pa_data <span class="ot">&lt;-</span> statcast_data <span class="sc">%&gt;%</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(game_pk, at_bat_number) <span class="sc">%&gt;%</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
@@ -302,9 +307,12 @@ date  (1): game_date
 <span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
 <span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(game_pk, inning, inning_topbot, at_bat_number)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <p>We then find the next batter in the lineup and get their handedness.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>pa_data <span class="ot">&lt;-</span> pa_data <span class="sc">%&gt;%</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(game_pk, inning_topbot, at_bat_number) <span class="sc">%&gt;%</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
@@ -312,9 +320,12 @@ date  (1): game_date
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">potential_next_batter_handedness =</span> <span class="fu">lead</span>(batter_handedness)</span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <p>Let’s also create a single baserunner state variable.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>pa_data <span class="ot">&lt;-</span> pa_data <span class="sc">%&gt;%</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">baserunner_state =</span> <span class="fu">case_when</span>(</span>
@@ -328,8 +339,11 @@ date  (1): game_date
 <span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Empty"</span></span>
 <span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># SPECIAL CASE: Remove next batter for bottom 9th+ with 2 outs and bases loaded</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>pa_data <span class="ot">&lt;-</span> pa_data <span class="sc">%&gt;%</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
@@ -337,9 +351,12 @@ date  (1): game_date
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">potential_next_batter =</span> <span class="fu">ifelse</span>(inning_topbot <span class="sc">==</span> <span class="st">"Bot"</span> <span class="sc">&amp;</span> inning <span class="sc">&gt;=</span> <span class="dv">9</span> <span class="sc">&amp;</span> outs_when_up <span class="sc">==</span> <span class="dv">2</span> <span class="sc">&amp;</span> bases_loaded <span class="sc">==</span> <span class="dv">1</span>, <span class="cn">NA</span>, potential_next_batter)</span>
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>bases_loaded)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <p>We will then want to make sure all hitters considered (and next hitters) are qualified, so that their xwOBA over the season has stabilized somewhat. This is a threshold of 502 plate appearances.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Count the number of plate appearances per batter (as the current batter)</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>batter_counts <span class="ot">&lt;-</span> pa_data <span class="sc">%&gt;%</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(batter) <span class="sc">%&gt;%</span></span>
@@ -371,9 +388,12 @@ date  (1): game_date
 <span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(potential_next_batter),         <span class="co"># Ensure there is a potential next batter</span></span>
 <span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    potential_next_batter <span class="sc">%in%</span> qualified_next_batters</span>
 <span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <p>We then calculate the current batter’s season-long xwOBA and the outcome difference between each plate appearance and that baseline xwOBA.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># (a) For each current batter, calculate their season-long baseline PA xwOBA.</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>current_baseline <span class="ot">&lt;-</span> pa_data_qualified <span class="sc">%&gt;%</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(batter) <span class="sc">%&gt;%</span></span>
@@ -384,9 +404,12 @@ date  (1): game_date
 <span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>pa_data_qualified <span class="ot">&lt;-</span> pa_data_qualified <span class="sc">%&gt;%</span></span>
 <span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(current_baseline, <span class="at">by =</span> <span class="st">"batter"</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">outcomeDiff =</span> pa_xwOBA <span class="sc">-</span> baseline_current)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <p>We then calculate the next batter’s season-long xwOBA.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Next batter's baseline xwOBA</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>next_baseline <span class="ot">&lt;-</span> pa_data_qualified <span class="sc">%&gt;%</span></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(potential_next_batter) <span class="sc">%&gt;%</span></span>
@@ -401,9 +424,12 @@ date  (1): game_date
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">nextHitterSkill =</span> baseline_next</span>
 <span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <p>Now, let’s create our mixed-effects linear model and graph!</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>pa_data_qualified<span class="sc">$</span>batter_handedness <span class="ot">&lt;-</span> <span class="fu">factor</span>(pa_data_qualified<span class="sc">$</span>batter_handedness)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>pa_data_qualified<span class="sc">$</span>potential_next_batter_handedness <span class="ot">&lt;-</span> <span class="fu">factor</span>(pa_data_qualified<span class="sc">$</span>potential_next_batter_handedness)</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -414,10 +440,14 @@ date  (1): game_date
 <span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">|</span> batter) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> pitcher),</span>
 <span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_data_qualified</span>
 <span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stderr">
 <pre><code>boundary (singular) fit: see help('isSingular')</code></pre>
 </div>
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Linear mixed model fit by REML. t-tests use Satterthwaite's method [
 lmerModLmerTest]
@@ -491,6 +521,8 @@ boundary (singular) fit: see help('isSingular')</code></pre>
 <section id="visualizations" class="level2">
 <h2 class="anchored" data-anchor-id="visualizations">Visualizations</h2>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pa_data_qualified, <span class="fu">aes</span>(<span class="at">x =</span> nextHitterSkill, <span class="at">y =</span> outcomeDiff)) <span class="sc">+</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"red"</span>, <span class="at">alpha =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">color =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
@@ -500,6 +532,7 @@ boundary (singular) fit: see help('isSingular')</code></pre>
 <span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Outcome Difference"</span></span>
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
 <span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stderr">
 <pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
 </div>
@@ -521,6 +554,8 @@ boundary (singular) fit: see help('isSingular')</code></pre>
 </div>
 <p>Let’s also make a visualization showing how different pitchers are in terms of their adjustments to next batters. Pitcher’s random effects vary as expected: some pitchers tend to be associated with larger absolute changes in <code>outcomeDiff</code> than others. However, this is not statistically significant using an ANOVA test.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>m_protection_slope <span class="ot">&lt;-</span> <span class="fu">lmer</span>(</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  outcomeDiff <span class="sc">~</span> nextHitterSkill <span class="sc">+</span> batter_handedness <span class="sc">+</span> potential_next_batter_handedness <span class="sc">+</span></span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span> inning <span class="sc">+</span> run_diff <span class="sc">+</span></span>
@@ -529,13 +564,17 @@ boundary (singular) fit: see help('isSingular')</code></pre>
 <span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">|</span> batter),</span>
 <span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_data_qualified</span>
 <span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stderr">
 <pre><code>boundary (singular) fit: see help('isSingular')</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning: Model failed to converge with 1 negative eigenvalue: -6.0e+01</code></pre>
 </div>
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_slope)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Linear mixed model fit by REML. t-tests use Satterthwaite's method [
 lmerModLmerTest]
@@ -603,7 +642,10 @@ Use print(x, correlation=TRUE)  or
 <pre><code>optimizer (nloptwrap) convergence code: 0 (OK)
 boundary (singular) fit: see help('isSingular')</code></pre>
 </div>
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(m_protection, m_protection_slope, <span class="at">refit =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Data: pa_data_qualified
 Models:
@@ -615,6 +657,8 @@ m_protection_slope   19 38826 38989 -19394    38788 2.9007  2     0.2345</code><
 </div>
 </div>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>ranefs <span class="ot">&lt;-</span> <span class="fu">ranef</span>(m_protection_slope)</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="co"># This is a list with $pitcher and $batter (since you have random effects for both).</span></span>
@@ -628,8 +672,11 @@ m_protection_slope   19 38826 38989 -19394    38788 2.9007  2     0.2345</code><
 <span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Add pitcher ID as a column</span></span>
 <span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>pitcher_re_df<span class="sc">$</span>pitcher_id <span class="ot">&lt;-</span> <span class="fu">rownames</span>(pitcher_re)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pitcher_re_df, <span class="fu">aes</span>(<span class="at">x =</span> random_slope_for_skill)) <span class="sc">+</span></span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">30</span>, <span class="at">fill =</span> <span class="st">"darkgreen"</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
@@ -638,6 +685,7 @@ m_protection_slope   19 38826 38989 -19394    38788 2.9007  2     0.2345</code><
 <span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Count"</span></span>
 <span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
 <span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -648,6 +696,8 @@ m_protection_slope   19 38826 38989 -19394    38788 2.9007  2     0.2345</code><
 </div>
 <p>Let’s list out the top and bottom 5 pitchers in terms of their random effects.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Extract the random effects for pitchers</span></span>
@@ -669,10 +719,14 @@ m_protection_slope   19 38826 38989 -19394    38788 2.9007  2     0.2345</code><
 <span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. Print or inspect results</span></span>
 <span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Top 5 Pitchers by Random Effect:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Top 5 Pitchers by Random Effect:</code></pre>
 </div>
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(top_5_pitchers)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>       random_intercept pitcher_id
 592836       0.01481674     592836
@@ -681,12 +735,18 @@ m_protection_slope   19 38826 38989 -19394    38788 2.9007  2     0.2345</code><
 665871       0.01232840     665871
 656605       0.01220370     656605</code></pre>
 </div>
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Bottom 5 Pitchers by Random Effect:</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 Bottom 5 Pitchers by Random Effect:</code></pre>
 </div>
+<details class="code-fold">
+<summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(bottom_5_pitchers)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>       random_intercept pitcher_id
 605400      -0.01188057     605400
