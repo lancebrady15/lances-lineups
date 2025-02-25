@@ -2,6 +2,8 @@ project:
   type: website
   execute-dir: project
 
+execute:
+  freeze: auto
 
 website:
   title: "Lance's Lineups"
