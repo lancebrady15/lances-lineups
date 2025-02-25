@@ -24,6 +24,8 @@ format:
   html:
     theme: default
     css: styles.css
+    code-fold: true
+    code-summary: "Show Code"
 
 
 
