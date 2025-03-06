@@ -1,0 +1,128 @@
+---
+title: "Blog #3: Baserunning"
+author: "Lance Brady"
+date: "2025-03-05"
+categories: [swing profiles, lineups, statcast]
+format: html
+editor: visual
+image: blog3.jpg
+---
+
+## Takeaways
+
+1.  A
+
+## Introduction to Baserunning
+
+As Statcast expands the data they are able to collect and parse through, one big innovation is the creation of "Baserunning Runs," which aims to estimate the number of runs a player is creating through baserunning alone. Statcast defines it as follows:
+
+"A Statcast metric designed to express the overall value of a baserunner, measured in runs created (or lost) via stealing bases and taking extra bases on the basepaths. Each steal opportunity is assigned a probability of being successful or not, based on the pitcher and catcher the basestealer is running against. Each successful or failed steal attempt is assigned a run value, with a stolen base or advance via a balk worth +0.2 runs for the baserunner and a caught stealing or pickoff worth -0.45 runs. For non-steal baserunning plays, an estimated success probability is generated for each opportunity using inputs that include runner speed, outfielder throwing arm, runner position on the basepaths and outfielder distance from both the ball and the bases. That can be translated to a run value based on whether the runner successfully takes the extra base, is thrown out or does not attempt to advance (holds)."
+
+A player's speed is only as useful as they make it, so lineup construction analysis, which often references the need for speed at the top and bottom of the order, would benefit from using this advanced data. Managers no longer have to use sprint speed to proxy a player's value on the basepaths, they can use a player's true baserunning value.
+
+It is worth noting that the MLB opted for bigger bases in 2023 to increase action on the basepaths. This means that although Statcast has baserunning data going back to 2016, we will focus on just the 2023 and 2024 seasons to make our analysis more applicable to future seasons.
+
+## Aim
+
+This article aims to answer a couple of questions about the role baserunning has in lineup construction. We'd like to answer the following research questions, which focus on distinct parts of baserunner effects within the game:
+
+1.  Does having a perceived “speed threat” on base lead to measurable changes in the pitcher’s approach (e.g., pitch selection, pitch location, pickoff frequency), and can that impact subsequent hitters’ performances?
+2.  What is the optimal positioning of baserunning value within a lineup? Is it better to cluster speedy players consecutively (for multiple stolen bases or first-to-third attempts in an inning) or to spread them out to maximize the impact in different segments of the lineup?
+3.  Since 2023, how well have managers optimized their team's speed in their lineups?
+
+## Setup
+
+To answer Question #1, we will need two datasets: Statcast pitch-by-pitch data for all of 2023/2024 and
+
+## Methods
+
+First, we loaded in our libraries and read the data, which contains almost every pitch from the 2023 and 2024 seasons (excluding when poor data was retrieved).
+
+```{r}
+#| echo: false
+#| output: false
+
+library(tidyverse)
+library(car)
+library(lme4)
+library(lmerTest)
+library(pubtheme)
+```
+
+```{r}
+statcast_data = read.csv("data/statcast_data.csv")
+baserunning_data = read.csv("data/baserunning_data.csv")
+```
+
+Next, we want to create a "speed value" for each player in our base_running data. We will use `runner_runs_tot` from `baserunning_data` to create a new column, `speed_value`, which will be the number of runs a player generated through baserunning divided by the number of opportunities they had to generate those runs. `runner_runs_tot` is the number of runs a player generated through baserunning.
+
+DO ANALYSIS OF NUMBER OF OPPORTUNITIES FOR EACH PLAYER. This is more representative of their true baserunning threat than just the number of total baserunning runs they generated. 
+
+Now, let's create a lookup table for each player with their speed value.
+
+```{r}
+baserunning_lookup <- setNames(baserunning_data$runner_runs_tot,
+                               baserunning_data$player_id)
+```
+
+Next, we will create a custom function to sum the baserunning value on base for each pitch. This function will take in the base occupancy and the lookup table we just created and return the sum of the baserunning value for each player on base.
+
+```{r}
+# Custom function to calculate total speed on base, ensuring all runners have data
+get_total_speed_on_base <- function(on1b, on2b, on3b, baserunning_lookup) {
+  
+  # Convert IDs to character to match lookup names
+  runner_ids <- as.character(c(on1b, on2b, on3b))
+  
+  # Check if all runners are in the lookup
+  if (all(!is.na(runner_ids)) && all(runner_ids %in% names(baserunning_lookup))) {
+    
+    # Sum up `runner_runs_tot` for all runners on base
+    total_speed <- sum(baserunning_lookup[runner_ids], na.rm = TRUE)
+    return(total_speed)
+    
+  } else {
+    return(NA)  # Mark as NA if any runner is missing in baserunning_lookup
+  }
+}
+
+# Apply function to calculate total speed on base for each pitch, filtering valid cases
+statcast_data <- statcast_data %>%
+  rowwise() %>%
+  mutate(
+    total_speed_on_base = get_total_speed_on_base(
+      on_1b, on_2b, on_3b, baserunning_lookup
+    )
+  ) %>%
+  ungroup() %>%
+  filter(!is.na(total_speed_on_base))
+
+# Check summary
+summary(statcast_data$total_speed_on_base)
+
+```
+
+## Model 1: Pitcher Behavior
+### Pitch Velocity with Speed on Base
+```{r}
+model_vel <- lmer(
+  release_speed ~ total_speed_on_base + factor(balls) + factor(strikes) + (1 + total_speed_on_base | pitcher),
+  data = statcast_data
+)
+
+summary(model_vel)
+```
+
+```{r}
+
+```
+
+
+### Pitch Selection with Speed on Base
+## Model #1: 
+
+## Visualizations
+
+## Discussion
+
+## References

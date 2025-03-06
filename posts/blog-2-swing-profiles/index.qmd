@@ -8,9 +8,19 @@ editor: visual
 image: blog2.jpg
 ---
 
+## Takeaways:
+
+1.  Having a variety of swing speeds on a roster may correlate with expected scoring statistics for a team over a season, but a variety of swing lengths does not.
+
+2.   On a game-by-game basis, a team's swing length consistency is correlated with better offensive production, while a team's bat speed consistency is not.
+
+3.  On a player-by-player basis, a player's swing consistency is correlated with better offensive production. This is likely because the best players have found their optimal swing lengths and bat speeds, and while they will slightly deviate from them to better match the pitcher, they have less reason to adjust over the entire season. Worse hitters need to continuously adjust their swings over the season in searching for their best swing type.
+
 ## Introduction to Swing Profile Data
 
 Recent advances in Statcast technology have allowed for the direct measurement of bat speed and swing length on pitches where the batter swings. These new metrics open the door to exploring questions that were previously left to inference, scouting reports, or assumptions about mechanics. Specifically, we have become interested in the idea of swing consistency: How much do a batter’s bat speed and swing length deviate from pitch to pitch or from game to game? How do differing swing profiles on a roster correlate with run generation during a game?
+
+## Aim
 
 This article addresses three connected but distinct angles on these new metrics:
 
@@ -25,6 +35,10 @@ Our analysis aims not to prove a direct cause-and-effect relationship but rather
 1.  **Individual**: Is consistency associated with higher personal performance once I factor out average skill?
 
 2.  **Game**: On a day-to-day basis, does having a consistent or varied approach correlate with daily offensive output?
+
+## Setup
+
+We will answer these questions mainly using linear regression and multiple linear regression models predicting team runs scored in a game, over a season, and predicting xwOBA over a season from an individual's swing consistency.
 
 ## Methods
 
