@@ -10,8 +10,6 @@ image: blog2.jpg
 
 ## Introduction to Swing Profile Data
 
-**Overview**
-
 Recent advances in Statcast technology have allowed for the direct measurement of bat speed and swing length on pitches where the batter swings. These new metrics open the door to exploring questions that were previously left to inference, scouting reports, or assumptions about mechanics. Specifically, we have become interested in the idea of swing consistency: How much do a batter’s bat speed and swing length deviate from pitch to pitch or from game to game? How do differing swing profiles on a roster correlate with run generation during a game?
 
 This article addresses three connected but distinct angles on these new metrics:
@@ -37,12 +35,14 @@ First, we loaded in our libraries and read the data, which contains almost every
 #| output: false
 
 library(tidyverse)
+library(car)
+library(pubtheme)
 ```
 
 ```{r}
 # url included if we wanted to use read_csv with this data from an AWS S3 bucket
 # statcast_url = "https://lances-lineups-data.s3.us-east-2.amazonaws.com/statcast_data.csv"
-statcast_data <- read.csv("../../data/statcast_data.csv")
+statcast_data <- read.csv("data/statcast_data.csv")
 ```
 
 ### Question I: Does having a variety of average swing characteristics across players on the roster help or hurt scoring?
@@ -56,7 +56,7 @@ First, let's create a unique ID for each Plate Appearance in `pitches`.
 For each at-bat, decide if the batter is on the `home_team` (if `inning_topbot` == "Bot") or the `away_team` (if `inning_topbot` == "Top"). This assignment handles trades automatically, because the data for each game has the correct home/away teams for that date.
 
 ```{r}
-pitches <- pitches %>%
+pitches <- statcast_data %>%
   mutate(
     PA_id = paste(game_pk, at_bat_number, sep="_"),
     batter_team = ifelse(inning_topbot == "Bot", home_team, away_team)
@@ -329,7 +329,7 @@ In this model, we can incorporate situational or day‐to‐day changes in the t
 First, we group by (game_pk, batter_team, batter) to compute the mean and median for each player in that game. We also count how many plate appearances that batter had in that game.
 
 ```{r}
-pitches = read.csv("statcast_pitch_swing_data_20240402_20241030_with_arm_angle.csv")
+pitches = read.csv("data/statcast_data.csv")
 
 pitches <- pitches %>%
   mutate(
@@ -372,13 +372,9 @@ Now, let's get our team-level game-by-game diversity of swing speed and swing le
 team_game_diversity <- batter_game_stats %>%
   group_by(game_pk, batter_team) %>%
   summarise(
-    # Weighted SD of each player's mean (bat_speed)
-    game_sd_mean_bat_speed = weighted_sd(game_mean_bat_speed, total_pa_game),
     # Weighted SD of each player's median (bat_speed)
     game_sd_median_bat_speed = weighted_sd(game_median_bat_speed, total_pa_game),
-    
-    # Weighted SD of each player's mean (swing_length)
-    game_sd_mean_swing_length = weighted_sd(game_mean_swing_length, total_pa_game),
+
     # Weighted SD of each player's median (swing_length)
     game_sd_median_swing_length = weighted_sd(game_median_swing_length, total_pa_game),
     
@@ -424,25 +420,9 @@ analysis_game_df <- analysis_game_df %>%
   left_join(game_xwoba, by=c("game_pk","batter_team"))
 ```
 
-There are 38 rows where our swing data resulted in means of exactly 0 which doesn't make sense for our data. We will remove these rows.
-
-```{r}
-analysis_game_df <- analysis_game_df %>%
-  filter(game_sd_mean_bat_speed != 0, game_sd_mean_swing_length != 0)
-```
-
 Let's make our models for swing length:
 
 ```{r}
-# Mean-based statistics
-mean_woba_swing_length_model <- lm(game_wOBA ~ game_sd_mean_swing_length,
-                    data=analysis_game_df)
-summary(mean_woba_swing_length_model)
-
-mean_xwoba_swing_length_model <- lm(game_xwOBA ~ game_sd_mean_swing_length,
-                    data=analysis_game_df)
-summary(mean_xwoba_swing_length_model)
-
 # Median-based statistics
 median_woba_swing_length_model <- lm(game_wOBA ~ game_sd_median_swing_length,
                     data=analysis_game_df)
@@ -464,15 +444,6 @@ One possible explanation: The teams with the best scouting and analytics can pre
 Let's make our models for bat speed:
 
 ```{r}
-# Mean-based statistics
-mean_woba_bat_speed_model <- lm(game_wOBA ~ game_sd_mean_bat_speed,
-                    data=analysis_game_df)
-summary(mean_woba_bat_speed_model)
-
-mean_xwoba_bat_speed_model <- lm(game_xwOBA ~ game_sd_mean_bat_speed,
-                    data=analysis_game_df)
-summary(mean_xwoba_bat_speed_model)
-
 # Median-based statistics
 median_woba_bat_speed_model <- lm(game_wOBA ~ game_sd_median_bat_speed,
                     data=analysis_game_df)

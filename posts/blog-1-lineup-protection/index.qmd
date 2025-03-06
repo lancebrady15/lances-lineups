@@ -69,7 +69,7 @@ library(pubtheme)
 ```{r}
 # url included if we wanted to use read_csv with this data from an AWS S3 bucket
 # statcast_url = "https://lances-lineups-data.s3.us-east-2.amazonaws.com/statcast_data.csv"
-statcast_data <- read.csv("../../data/statcast_data.csv")
+statcast_data <- read.csv("data/statcast_data.csv")
 ```
 
 For each plate appearance, we aggregate key variables. We calculate `pa_xwOBA` as the average `estimated_woba_using_speedangle` for that plate appearance. We also compute run differential as the difference between `bat_score` and `fld_score` using the first pitch in the plate appearance, which reflects the score before the plate appearance starts.
