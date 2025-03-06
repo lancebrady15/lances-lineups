@@ -22,6 +22,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -162,12 +196,1115 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="introduction-to-swing-profile-data" class="level2">
 <h2 class="anchored" data-anchor-id="introduction-to-swing-profile-data">Introduction to Swing Profile Data</h2>
-<p>Talk about origin of data, what has been done.</p>
+<p>Recent advances in Statcast technology have allowed for the direct measurement of bat speed and swing length on pitches where the batter swings. These new metrics open the door to exploring questions that were previously left to inference, scouting reports, or assumptions about mechanics. Specifically, we have become interested in the idea of swing consistency: How much do a batter’s bat speed and swing length deviate from pitch to pitch or from game to game? How do differing swing profiles on a roster correlate with run generation during a game?</p>
+<p>This article addresses three connected but distinct angles on these new metrics:</p>
+<p><strong>Individual-Level Swing Diversity:</strong> Do stable or volatile swing metrics for a single batter over a season correlate with that batter’s offensive success, measured through wOBA or xwOBA?</p>
+<p><strong>Game-Level Team Swing Diversity:</strong> Does a club whose hitters share similar or very different swing metrics on a given day see any advantage in that day’s run production?</p>
+<p>Our analysis aims not to prove a direct cause-and-effect relationship but rather to uncover whether correlations exist that might guide roster construction, daily lineup decisions, or player development. Given that these bat speed and swing length metrics are new, we expect some initial findings to be exploratory, setting the stage for deeper or more controlled studies in the future.</p>
+<p><strong>Fundamental Questions Of Our Study</strong></p>
+<ol type="1">
+<li><p><strong>Individual</strong>: Is consistency associated with higher personal performance once I factor out average skill?</p></li>
+<li><p><strong>Game</strong>: On a day-to-day basis, does having a consistent or varied approach correlate with daily offensive output?</p></li>
+</ol>
 </section>
-<section id="current-findings" class="level2">
-<h2 class="anchored" data-anchor-id="current-findings">Current Findings</h2>
+<section id="methods" class="level2">
+<h2 class="anchored" data-anchor-id="methods">Methods</h2>
+<p>First, we loaded in our libraries and read the data, which contains almost every pitch from the 2024 season (excluding when poor data was retrieved).</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># url included if we wanted to use read_csv with this data from an AWS S3 bucket</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># statcast_url = "https://lances-lineups-data.s3.us-east-2.amazonaws.com/statcast_data.csv"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>statcast_data <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"data/statcast_data.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<section id="question-i-does-having-a-variety-of-average-swing-characteristics-across-players-on-the-roster-help-or-hurt-scoring" class="level3">
+<h3 class="anchored" data-anchor-id="question-i-does-having-a-variety-of-average-swing-characteristics-across-players-on-the-roster-help-or-hurt-scoring">Question I: Does having a variety of average swing characteristics across players on the roster help or hurt scoring?</h3>
+<section id="question-ia-does-variation-in-swing-length-or-swing-speed-individually-help-a-team-across-a-season" class="level4">
+<h4 class="anchored" data-anchor-id="question-ia-does-variation-in-swing-length-or-swing-speed-individually-help-a-team-across-a-season">Question IA: Does Variation in Swing Length or Swing Speed individually help a Team across a season?</h4>
+<p>We will want to create a weighted standard deviation-like metric for a team’s between-player swing style, either swing length or swing speed, variation. This will essentially be a weighted standard deviation of a team’s player’s average swing style for those two variables. I decide to give weight to each player by Plate Appearances, not by number of swings. This is because for a particular team, we do not want to overweight the free-swinging players just because they have more swing data. We want to consider player-team combinations, so that a player’s plate appearances for a certain team are treated separately from their plate appearances for another team, if they played for multiple teams in this season for some reason. This will account for the fact that a player might change swing characteristics upon getting to a new team.</p>
+<p>First, let’s create a unique ID for each Plate Appearance in <code>pitches</code>.</p>
+<p>For each at-bat, decide if the batter is on the <code>home_team</code> (if <code>inning_topbot</code> == “Bot”) or the <code>away_team</code> (if <code>inning_topbot</code> == “Top”). This assignment handles trades automatically, because the data for each game has the correct home/away teams for that date.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>pitches <span class="ot">&lt;-</span> statcast_data <span class="sc">%&gt;%</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">PA_id =</span> <span class="fu">paste</span>(game_pk, at_bat_number, <span class="at">sep=</span><span class="st">"_"</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">batter_team =</span> <span class="fu">ifelse</span>(inning_topbot <span class="sc">==</span> <span class="st">"Bot"</span>, home_team, away_team)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>At this point, a single batter can have multiple rows with different batter_team values if they switched teams mid-season. Each row corresponds to a single plate appearance.</p>
+<p>Now we define each combination (batter, batter_team) separately, so we only include that player’s PAs while on that team.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Each (batter, batter_team) combination with total PAs</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>batter_team_pa_count <span class="ot">&lt;-</span> pitches <span class="sc">%&gt;%</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(batter, batter_team) <span class="sc">%&gt;%</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(PA_id) <span class="sc">%&gt;%</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">total_PA_for_that_team =</span> <span class="fu">n</span>(), <span class="at">.groups=</span><span class="st">"drop"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(batter, batter_team)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Checking players who switched teams midway through, like Justin Turner, who had 349 PAs for Toronto along with 190 PAs for Seattle, we can see that the <code>batter_team_pa_count</code> is about correct. We get 332 and 189 PAs in our data respectively, likely due to some missing data.</p>
+<p>To get mean swing length for a player, we need to use only the rows from the times the batter was on that team. That means merging in batter_team_map so we can group by (batter, batter_team).</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>batter_team_swing_stats <span class="ot">&lt;-</span> pitches <span class="sc">%&gt;%</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Keep rows where swing_length and bat_speed are not NA</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(swing_length), <span class="sc">!</span><span class="fu">is.na</span>(bat_speed)) <span class="sc">%&gt;%</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(batter, batter_team) <span class="sc">%&gt;%</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_swing_length =</span> <span class="fu">mean</span>(swing_length, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_bat_speed =</span> <span class="fu">mean</span>(bat_speed, <span class="at">na.rm=</span><span class="cn">TRUE</span>), <span class="co"># Will need in Question IB</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_swing_length =</span> <span class="fu">sd</span>(swing_length, <span class="at">na.rm=</span><span class="cn">TRUE</span>), <span class="co"># Will need later</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_bat_speed =</span> <span class="fu">sd</span>(bat_speed, <span class="at">na.rm=</span><span class="cn">TRUE</span>), <span class="co"># Will need later</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>For each batter-team combination, we now have the mean swing length and bat speed, along with standard deviation. We can now calculate the weighted standard deviation of swing length for each team.</p>
+<p>We want to first add the total PA for each batter-team combination to the <code>batter_team_swing_stats</code> data frame. This will allow us to weight the standard deviation of swing length by the number of plate appearances for each player.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>batter_team_swing_stats <span class="ot">&lt;-</span> batter_team_swing_stats <span class="sc">%&gt;%</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(batter_team_pa_count, <span class="at">by=</span><span class="fu">c</span>(<span class="st">"batter"</span>, <span class="st">"batter_team"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>We’ll define a small helper to compute weighted SD:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>weighted_sd <span class="ot">&lt;-</span> <span class="cf">function</span>(x, w) {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  w_mean <span class="ot">&lt;-</span> <span class="fu">sum</span>(x <span class="sc">*</span> w, <span class="at">na.rm=</span><span class="cn">TRUE</span>) <span class="sc">/</span> <span class="fu">sum</span>(w, <span class="at">na.rm=</span><span class="cn">TRUE</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  w_var  <span class="ot">&lt;-</span> <span class="fu">sum</span>(w <span class="sc">*</span> (x <span class="sc">-</span> w_mean)<span class="sc">^</span><span class="dv">2</span>, <span class="at">na.rm=</span><span class="cn">TRUE</span>) <span class="sc">/</span> <span class="fu">sum</span>(w, <span class="at">na.rm=</span><span class="cn">TRUE</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sqrt</span>(w_var)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>team_diversity <span class="ot">&lt;-</span> batter_team_swing_stats <span class="sc">%&gt;%</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(batter_team) <span class="sc">%&gt;%</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Weighted SD of each player's mean bat_speed</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">team_sd_mean_bat_speed =</span> <span class="fu">weighted_sd</span>(mean_bat_speed, total_PA_for_that_team),</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Weighted SD of each player's mean swing_length</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">team_sd_mean_swing_length =</span> <span class="fu">weighted_sd</span>(mean_swing_length, total_PA_for_that_team),</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>We now have the weighted standard deviation of swing length for each team. We can now check if this variation in swing length helps or hurts scoring. We will use wOBA and xWOBA as proxies for scoring. We will do these calculations manually as our dataset does not include all 2024 Plate Appearances so we will only focus on our subset of the data. We will use the <code>woba_value</code> and <code>woba_denom</code> column in <code>pitches</code> to calculate wOBA for each plate appearance. We will then calculate the average wOBA for each team.</p>
+<p>Typically, wOBA is credited once per completed PA (plate appearance). In many Statcast datasets, woba_value and woba_denom are only non-zero on the final pitch of the PA. However, to ensure we only count each PA once, we can explicitly slice the final pitch of each (game_pk, at_bat_number).</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># We'll define "final pitch" as the last pitch_number in that (game_pk, at_bat_number)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>final_pitches <span class="ot">&lt;-</span> pitches <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(game_pk, at_bat_number) <span class="sc">%&gt;%</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(<span class="at">order_by =</span> pitch_number, <span class="at">n =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Now final_pitches has exactly 1 row per completed PA. This is our formula for wOBA:</p>
+<p>Upon inspecting the data, we can see that there are some rows for which <code>woba_value</code> or <code>woba_denom</code> are NA, so we will filter those out.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>final_pitches_clean <span class="ot">&lt;-</span> final_pitches <span class="sc">%&gt;%</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(woba_denom), <span class="sc">!</span><span class="fu">is.na</span>(woba_value))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>team_woba <span class="ot">&lt;-</span> final_pitches_clean <span class="sc">%&gt;%</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(batter_team) <span class="sc">%&gt;%</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_woba_value =</span> <span class="fu">sum</span>(woba_value, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_woba_denom =</span> <span class="fu">sum</span>(woba_denom, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">team_wOBA =</span> <span class="fu">ifelse</span>(total_woba_denom <span class="sc">==</span> <span class="dv">0</span>, <span class="cn">NA</span>,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>                       total_woba_value <span class="sc">/</span> total_woba_denom),</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>total_woba_value, <span class="sc">-</span>total_woba_denom) <span class="sc">%&gt;%</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(team_wOBA))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>This list seems to make sense and is in line with overall 2024 data. Typically, woba_denom is 1 for outcomes like walks, hit-by-pitch, or batted-ball events. For sacrifice flies or other rare events, it can vary slightly. The sum of woba_denom for a team is essentially the sum of PAs used in the wOBA formula (excluding some events like catcher interference or maybe intentionals, depending on how MLBAM codes them). So, its sum is essentially “the count of wOBA-relevant plate appearances”.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>analysis_df <span class="ot">&lt;-</span> team_diversity <span class="sc">%&gt;%</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(team_woba,  <span class="at">by=</span><span class="st">"batter_team"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>We can also calculate xwOBA for each team. xwOBA is a more advanced metric that uses exit velocity and launch angle to estimate the expected wOBA for each batted ball. We will use the <code>estimated_woba_using_speedangle</code> column in <code>pitches</code> to calculate xwOBA for each batted-ball plate appearance, then account for walks, hit-by-pitches, etc. We will then calculate the average xwOBA for each team.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>final_pitches_xwoba <span class="ot">&lt;-</span> final_pitches <span class="sc">%&gt;%</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(estimated_woba_using_speedangle)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">xWOBA_value =</span> estimated_woba_using_speedangle,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">xWOBA_denom =</span> <span class="dv">1</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>team_xwoba <span class="ot">&lt;-</span> final_pitches_xwoba <span class="sc">%&gt;%</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(batter_team) <span class="sc">%&gt;%</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_xwoba_value =</span> <span class="fu">sum</span>(xWOBA_value, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_xwoba_denom =</span> <span class="fu">sum</span>(xWOBA_denom, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">team_xwOBA =</span> <span class="fu">ifelse</span>(total_xwoba_denom <span class="sc">==</span> <span class="dv">0</span>, <span class="cn">NA</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                        total_xwoba_value <span class="sc">/</span> total_xwoba_denom),</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>total_xwoba_value, <span class="sc">-</span>total_xwoba_denom) <span class="sc">%&gt;%</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(team_xwOBA))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>This also seems to make sense and is in line with overall 2024 data.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>analysis_df <span class="ot">&lt;-</span> analysis_df <span class="sc">%&gt;%</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(team_xwoba, <span class="at">by=</span><span class="st">"batter_team"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="bat-speed" class="level4">
+<h4 class="anchored" data-anchor-id="bat-speed">Bat Speed</h4>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(analysis_df, <span class="fu">aes</span>(<span class="at">x=</span>team_sd_mean_bat_speed, <span class="at">y=</span>team_wOBA)) <span class="sc">+</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Team Swing Speed Diversity vs. Team wOBA"</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Team SD of Mean Bat Speed"</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Team wOBA"</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">+</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pub</span>()<span class="sc">+</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  <span class="do">## Add trendline</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method=</span><span class="st">"lm"</span>, <span class="at">se=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Let’s create a linear model to see if there is a significant relationship between team swing speed diversity and team wOBA.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>lm_woba <span class="ot">&lt;-</span> <span class="fu">lm</span>(team_wOBA <span class="sc">~</span> team_sd_mean_bat_speed, <span class="at">data=</span>analysis_df)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_woba)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = team_wOBA ~ team_sd_mean_bat_speed, data = analysis_df)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.037205 -0.007888 -0.001217  0.010741  0.024043 
+
+Coefficients:
+                       Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            0.305091   0.015363  19.859   &lt;2e-16 ***
+team_sd_mean_bat_speed 0.005201   0.005375   0.968    0.341    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.01376 on 28 degrees of freedom
+Multiple R-squared:  0.03236,   Adjusted R-squared:  -0.002197 
+F-statistic: 0.9364 on 1 and 28 DF,  p-value: 0.3415</code></pre>
+</div>
+</div>
+<p>In this linear model, we get a negative Adjusted R-squared, signalling that there’s almost no linear relationship—in other words, once the penalty for adding a predictor is applied, the model explains less variance than just using the mean. The p-value is 0.341, which is insignificant at the 0.05 level. This suggests that there is no significant relationship between team swing speed diversity and team wOBA.</p>
+<p>Let’s also check the relationship between team swing speed diversity and team xwOBA.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(analysis_df, <span class="fu">aes</span>(<span class="at">x=</span>team_sd_mean_bat_speed, <span class="at">y=</span>team_xwOBA)) <span class="sc">+</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Team Swing Speed Diversity vs. Team xwOBA"</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Team SD of Mean Bat Speed"</span>,</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Team xwOBA"</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">+</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pub</span>()<span class="sc">+</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method=</span><span class="st">"lm"</span>, <span class="at">se=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>lm_xwoba <span class="ot">&lt;-</span> <span class="fu">lm</span>(team_xwOBA <span class="sc">~</span> team_sd_mean_bat_speed, <span class="at">data=</span>analysis_df)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_xwoba)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = team_xwOBA ~ team_sd_mean_bat_speed, data = analysis_df)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.028354 -0.008561 -0.002876  0.008982  0.025606 
+
+Coefficients:
+                       Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            0.290644   0.014814  19.619   &lt;2e-16 ***
+team_sd_mean_bat_speed 0.007635   0.005183   1.473    0.152    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.01327 on 28 degrees of freedom
+Multiple R-squared:  0.07193,   Adjusted R-squared:  0.03879 
+F-statistic:  2.17 on 1 and 28 DF,  p-value: 0.1519</code></pre>
+</div>
+</div>
+<p>The Adjusted R-Squared for this model is positive, and the p-value of team-level bat speed diversity has gone down to 0.177. It is possible that with more data from other seasons, we would be able to see more signficiant relationships between team-level bat speed diversity and team xwOBA.</p>
+<p>However, at this point, it is worth noting that our data is pointing to the possibility of a relationship, even if it is small, between team-level bat speed diversity and team xwOBA. This is worth more exploration.</p>
+<p>Let’s do the same for swing length.</p>
+</section>
+<section id="swing-length" class="level4">
+<h4 class="anchored" data-anchor-id="swing-length">Swing Length</h4>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(analysis_df, <span class="fu">aes</span>(<span class="at">x=</span>team_sd_mean_swing_length, <span class="at">y=</span>team_wOBA)) <span class="sc">+</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Team Swing Length Diversity vs. Team wOBA"</span>,</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Team SD of Mean Swing Length"</span>,</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Team wOBA"</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">+</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pub</span>()<span class="sc">+</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method=</span><span class="st">"lm"</span>, <span class="at">se=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>lm_woba <span class="ot">&lt;-</span> <span class="fu">lm</span>(team_wOBA <span class="sc">~</span> team_sd_mean_swing_length, <span class="at">data=</span>analysis_df)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_woba)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = team_wOBA ~ team_sd_mean_swing_length, data = analysis_df)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.036636 -0.008650 -0.002102  0.011271  0.024778 
+
+Coefficients:
+                          Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)               0.317075   0.012163  26.068   &lt;2e-16 ***
+team_sd_mean_swing_length 0.006875   0.030472   0.226    0.823    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.01398 on 28 degrees of freedom
+Multiple R-squared:  0.001814,  Adjusted R-squared:  -0.03384 
+F-statistic: 0.0509 on 1 and 28 DF,  p-value: 0.8231</code></pre>
+</div>
+</div>
+<p>The Adjusted R-squared for swing length is also negative, and the p-value is 0.823, which is insignificant at the 0.05 level. This suggests that there is no significant relationship between team swing length diversity and team wOBA.</p>
+<p>Let’s also check the relationship between team swing length diversity and team xwOBA.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(analysis_df, <span class="fu">aes</span>(<span class="at">x=</span>team_sd_mean_swing_length, <span class="at">y=</span>team_xwOBA)) <span class="sc">+</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Team Swing Length Diversity vs. Team xwOBA"</span>,</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Team SD of Mean Swing Length"</span>,</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Team xwOBA"</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">+</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pub</span>()<span class="sc">+</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method=</span><span class="st">"lm"</span>, <span class="at">se=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>lm_xwoba <span class="ot">&lt;-</span> <span class="fu">lm</span>(team_xwOBA <span class="sc">~</span> team_sd_mean_swing_length, <span class="at">data=</span>analysis_df)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_xwoba)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = team_xwOBA ~ team_sd_mean_swing_length, data = analysis_df)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.028497 -0.009080 -0.002055  0.011655  0.028380 
+
+Coefficients:
+                          Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)                0.30086    0.01179  25.526   &lt;2e-16 ***
+team_sd_mean_swing_length  0.02899    0.02953   0.982    0.335    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.01354 on 28 degrees of freedom
+Multiple R-squared:  0.03329,   Adjusted R-squared:  -0.001233 
+F-statistic: 0.9643 on 1 and 28 DF,  p-value: 0.3345</code></pre>
+</div>
+</div>
+<p>Again, our Adjusted R-Squared is negative, and the p-value of the team-level swing length diversity is 0.367. This suggests that there is no significant relationship between team swing length diversity and team xwOBA.</p>
+<p>In conclusion, we have found that there is no significant relationship between team swing length diversity and team wOBA or xwOBA. This suggests that having a variety of average swing length characteristics across players on the roster does not help or hurt scoring.</p>
+<p>It is worth noting that our xwOBA data seems to point towards stronger relationships than our wOBA data. In theory, xwOBA is a more trustworthy measure of offensive production, because it looks to eliminate the noise of defense and luck. Sometimes including both together—or creating a combined 2D measure—can reveal patterns not evident in either metric separately.</p>
+<p>Perhaps the simplest approach is to include both predictors in the same linear model as a multiple regression model.</p>
+</section>
+</section>
+<section id="multivariate-approach-of-swing-style" class="level3">
+<h3 class="anchored" data-anchor-id="multivariate-approach-of-swing-style">Multivariate Approach of Swing “Style”</h3>
+<section id="multiple-regression-model" class="level4">
+<h4 class="anchored" data-anchor-id="multiple-regression-model">Multiple Regression Model</h4>
+<p>If <code>team_sd_mean_swing_length</code> was “useless” by itself, it could still contribute additional explanatory power in the presence of <code>team_sd_mean_bat_speed</code>. For example, maybe a team with both high bat‐speed diversity and high swing‐length diversity has synergy (or a deficiency).</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Using wOBA</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>mod_multi <span class="ot">&lt;-</span> <span class="fu">lm</span>(team_wOBA <span class="sc">~</span> team_sd_mean_bat_speed <span class="sc">+</span> team_sd_mean_swing_length,</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">data =</span> analysis_df)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(mod_multi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = team_wOBA ~ team_sd_mean_bat_speed + team_sd_mean_swing_length, 
+    data = analysis_df)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.036697 -0.008451 -0.001479  0.010265  0.024673 
+
+Coefficients:
+                           Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)                0.306548   0.015998  19.161   &lt;2e-16 ***
+team_sd_mean_bat_speed     0.006809   0.006726   1.012    0.320    
+team_sd_mean_swing_length -0.015350   0.037546  -0.409    0.686    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.01397 on 27 degrees of freedom
+Multiple R-squared:  0.03832,   Adjusted R-squared:  -0.03292 
+F-statistic: 0.5379 on 2 and 27 DF,  p-value: 0.5901</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Using xWOBA</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>mod_multi <span class="ot">&lt;-</span> <span class="fu">lm</span>(team_xwOBA <span class="sc">~</span> team_sd_mean_bat_speed <span class="sc">+</span> team_sd_mean_swing_length,</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">data =</span> analysis_df)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(mod_multi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = team_xwOBA ~ team_sd_mean_bat_speed + team_sd_mean_swing_length, 
+    data = analysis_df)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.028559 -0.008475 -0.003035  0.009484  0.025352 
+
+Coefficients:
+                          Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)               0.290056   0.015467  18.754   &lt;2e-16 ***
+team_sd_mean_bat_speed    0.006987   0.006503   1.074    0.292    
+team_sd_mean_swing_length 0.006191   0.036297   0.171    0.866    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.01351 on 27 degrees of freedom
+Multiple R-squared:  0.07293,   Adjusted R-squared:  0.004259 
+F-statistic: 1.062 on 2 and 27 DF,  p-value: 0.3598</code></pre>
+</div>
+</div>
+<p>The Adjusted R-Squared for both models are negative, suggesting that while team-level bat speed variation may help explain between-team variation in xWOBA, a combined model with swing length is not providing any explanation for the variation in xWOBA or wOBA. In both models, the p-values for both predictors are also insignificant at the 0.05 level.</p>
+<p>It is worth noting that other models with interaction and transformed predictors were considered, though nothing yielded a realistic and suitable result.</p>
+<p>Given that all of this data analysis was done on 30 data points (30 teams), we would like to consider a team’s wOBA and xWOBA for each game.</p>
+<p>Takeaway #1: Having a variety of swing speeds on a roster could correlate with expected scoring statistics for a team over a season, but a variety of swing lengths does not.</p>
+</section>
+</section>
+<section id="question-ib-within-a-game-does-consistency-of-a-teams-swings-help-or-hurt-scoring" class="level3">
+<h3 class="anchored" data-anchor-id="question-ib-within-a-game-does-consistency-of-a-teams-swings-help-or-hurt-scoring">Question IB: Within a game, does consistency of a team’s swings help or hurt scoring?</h3>
+<p>In this model, we can incorporate situational or day‐to‐day changes in the team’s lineup (maybe a star was resting, or they traded for a new hitter mid‐season). We will want to compute each team’s in‐game diversity of swing speed and swing length weighted by plate appearances, then comparing that to the team’s in‐game wOBA and xwOBA.</p>
+<p>First, we group by (game_pk, batter_team, batter) to compute the mean and median for each player in that game. We also count how many plate appearances that batter had in that game.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>pitches <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"data/statcast_data.csv"</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>pitches <span class="ot">&lt;-</span> pitches <span class="sc">%&gt;%</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">PA_id =</span> <span class="fu">paste</span>(game_pk, at_bat_number, <span class="at">sep=</span><span class="st">"_"</span>),</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">batter_team =</span> <span class="fu">ifelse</span>(inning_topbot <span class="sc">==</span> <span class="st">"Bot"</span>, home_team, away_team)</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>player_game_allPA <span class="ot">&lt;-</span> pitches <span class="sc">%&gt;%</span></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(game_pk, batter, batter_team) <span class="sc">%&gt;%</span></span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_pa_game =</span> <span class="fu">n_distinct</span>(PA_id),    <span class="co"># all PAs in that game for that batter</span></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Subset to actual swings</span></span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>batter_game_swings <span class="ot">&lt;-</span> pitches <span class="sc">%&gt;%</span></span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(bat_speed), <span class="sc">!</span><span class="fu">is.na</span>(swing_length)) <span class="sc">%&gt;%</span></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(game_pk, batter, batter_team) <span class="sc">%&gt;%</span></span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># mean &amp; median for the swings that occurred</span></span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">game_median_bat_speed    =</span> <span class="fu">median</span>(bat_speed, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">game_median_swing_length =</span> <span class="fu">median</span>(swing_length, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Finally, we do a left_join so that every (game, batter, team) from player_game_allPA is preserved—even if the player never swung:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>batter_game_stats <span class="ot">&lt;-</span> player_game_allPA <span class="sc">%&gt;%</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(batter_game_swings,</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"game_pk"</span>, <span class="st">"batter"</span>, <span class="st">"batter_team"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Some batters (especially if they only had one PA) might have 0 swings and thus NA data for the swing columns. That is okay, as they will not effect our weighted standard deviations.</p>
+<p>Now, let’s get our team-level game-by-game diversity of swing speed and swing length. We will use the same weighted standard deviation formula as before, but this time we will use the game_mean_bat_speed and game_mean_swing_length columns.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>team_game_diversity <span class="ot">&lt;-</span> batter_game_stats <span class="sc">%&gt;%</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(game_pk, batter_team) <span class="sc">%&gt;%</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Weighted SD of each player's median (bat_speed)</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">game_sd_median_bat_speed =</span> <span class="fu">weighted_sd</span>(game_median_bat_speed, total_pa_game),</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Weighted SD of each player's median (swing_length)</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">game_sd_median_swing_length =</span> <span class="fu">weighted_sd</span>(game_median_swing_length, total_pa_game),</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Now each row in team_game_diversity is a single (game_pk, batter_team) with four different “diversity” metrics (two based on mean, two based on median).</p>
+<p>Next, we will compute game-level xWOBA and wOBA for each team. We will use the same formula as before, but this time we will use the <code>woba_value</code> and <code>woba_denom</code> columns in <code>pitches</code> to calculate wOBA for each plate appearance. We will then calculate the average wOBA for each team.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>game_woba <span class="ot">&lt;-</span> final_pitches_clean <span class="sc">%&gt;%</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(game_pk, batter_team) <span class="sc">%&gt;%</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_woba_val   =</span> <span class="fu">sum</span>(woba_value, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_woba_denom =</span> <span class="fu">sum</span>(woba_denom, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">game_wOBA =</span> <span class="fu">ifelse</span>(total_woba_denom <span class="sc">==</span> <span class="dv">0</span>, <span class="cn">NA</span>,</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>                       total_woba_val <span class="sc">/</span> total_woba_denom),</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(game_pk, batter_team, game_wOBA)</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>game_xwoba <span class="ot">&lt;-</span> final_pitches_xwoba <span class="sc">%&gt;%</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(game_pk, batter_team) <span class="sc">%&gt;%</span></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_xwoba_value   =</span> <span class="fu">sum</span>(xWOBA_value, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_xwoba_denom =</span> <span class="fu">sum</span>(xWOBA_denom, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">game_xwOBA =</span> <span class="fu">ifelse</span>(total_xwoba_denom <span class="sc">==</span> <span class="dv">0</span>, <span class="cn">NA</span>,</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>                        total_xwoba_value <span class="sc">/</span> total_xwoba_denom),</span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(game_pk, batter_team, game_xwOBA)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Now, combine into an analysis dataframe:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>analysis_game_df <span class="ot">&lt;-</span> team_game_diversity <span class="sc">%&gt;%</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(game_woba, <span class="at">by=</span><span class="fu">c</span>(<span class="st">"game_pk"</span>, <span class="st">"batter_team"</span>))</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>analysis_game_df <span class="ot">&lt;-</span> analysis_game_df <span class="sc">%&gt;%</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(game_xwoba, <span class="at">by=</span><span class="fu">c</span>(<span class="st">"game_pk"</span>,<span class="st">"batter_team"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Let’s make our models for swing length:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Median-based statistics</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>median_woba_swing_length_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(game_wOBA <span class="sc">~</span> game_sd_median_swing_length,</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>                    <span class="at">data=</span>analysis_game_df)</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(median_woba_swing_length_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = game_wOBA ~ game_sd_median_swing_length, data = analysis_game_df)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.280789 -0.061869 -0.002215  0.062242  0.311536 
+
+Coefficients:
+                             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)                  0.331454   0.004442  74.610  &lt; 2e-16 ***
+game_sd_median_swing_length -0.035054   0.008007  -4.378 1.22e-05 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.0898 on 4804 degrees of freedom
+Multiple R-squared:  0.003973,  Adjusted R-squared:  0.003766 
+F-statistic: 19.16 on 1 and 4804 DF,  p-value: 1.225e-05</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>median_xwoba_swing_length_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(game_xwOBA <span class="sc">~</span> game_sd_median_swing_length,</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">data=</span>analysis_game_df)</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(median_xwoba_swing_length_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = game_xwOBA ~ game_sd_median_swing_length, data = analysis_game_df)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.240329 -0.046413 -0.002318  0.044446  0.235543 
+
+Coefficients:
+                             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)                  0.320361   0.003298   97.13  &lt; 2e-16 ***
+game_sd_median_swing_length -0.022292   0.005945   -3.75 0.000179 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.06667 on 4804 degrees of freedom
+Multiple R-squared:  0.002918,  Adjusted R-squared:  0.002711 
+F-statistic: 14.06 on 1 and 4804 DF,  p-value: 0.0001792</code></pre>
+</div>
+</div>
+<p>We tried out both mean and median-based models to ensure that outliers in the data were not influencing individual player’s swing data. However, the mean-based and median-based models are showing similar results. Thus, we are going to graph just median-based results, as they are much more signficiant. These four models are all interesting though, with significant p-values for all coefficients of team swing length diversity, and positive Adjusted R-Squared values, even if incredibly small, for all models.</p>
+<p>The coefficients for team swing length diversity are all negative, suggesting that on a game-by-game basis, a more consistent swing length is correlated with better offensive production. The p-values are all significant at the 0.05 level, suggesting that there is a significant relationship between team swing length diversity and team wOBA and xwOBA. The Adjusted R-Squared values are all positive, suggesting that the models explain some variance in team wOBA and xwOBA.</p>
+<p>This finding is interesting, as it could point to a number of things: - Consistent team-wide swing length approaches might be best for scoring - Our team-by-team data might simply have not had enough sample size to find significant correlations</p>
+<p>One possible explanation: The teams with the best scouting and analytics can prepare their players similarly for a particular game, allowing them to capitalize on the opponents’ weaknesses or particular ballpark-related advantages.</p>
+<p>Let’s make our models for bat speed:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Median-based statistics</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>median_woba_bat_speed_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(game_wOBA <span class="sc">~</span> game_sd_median_bat_speed,</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>                    <span class="at">data=</span>analysis_game_df)</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(median_woba_bat_speed_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = game_wOBA ~ game_sd_median_bat_speed, data = analysis_game_df)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.280950 -0.062190 -0.001972  0.062406  0.311361 
+
+Coefficients:
+                          Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)               0.316606   0.003393  93.312   &lt;2e-16 ***
+game_sd_median_bat_speed -0.001043   0.000871  -1.198    0.231    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.08997 on 4804 degrees of freedom
+Multiple R-squared:  0.0002985, Adjusted R-squared:  9.044e-05 
+F-statistic: 1.435 on 1 and 4804 DF,  p-value: 0.2311</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>median_xwoba_bat_speed_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(game_xwOBA <span class="sc">~</span> game_sd_median_bat_speed,</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">data=</span>analysis_game_df)</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(median_xwoba_bat_speed_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = game_xwOBA ~ game_sd_median_bat_speed, data = analysis_game_df)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.237892 -0.046046 -0.002679  0.044713  0.232560 
+
+Coefficients:
+                          Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)              3.082e-01  2.518e-03 122.407   &lt;2e-16 ***
+game_sd_median_bat_speed 8.167e-05  6.465e-04   0.126    0.899    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.06677 on 4804 degrees of freedom
+Multiple R-squared:  3.323e-06, Adjusted R-squared:  -0.0002048 
+F-statistic: 0.01596 on 1 and 4804 DF,  p-value: 0.8995</code></pre>
+</div>
+</div>
+<p>In all models except 1, we got both a negative Adjusted R-Squared and an insignifcant sign of the coefficient. In our model of game-level team bat speed diversity with wOBA, we got a positive Adjusted R-Squared, but the p-value of the coefficient is insignificant at the 0.05 level, and it does not line up with the model using xWOBA, and thus, I will ignore it as likely due to random chance. This suggests that on a game-by-game basis, consistency in a team’s bat speed does not correlate positively or negatively with increased scoring.</p>
+<p>This inversion from our potential correlations in team-level bat speed diversity and team xwOBA is interesting.</p>
+<p>One possible explanation: Throughout a season, a team that has a variety of bat speeds can more easily adapt to the many pitchers they face. In one particular game, a team’s variety of bat speeds does not prove useful when they may only face two or three pitchers, provided that the starter pitches for a large portion of the game.</p>
+<p>Let’s graph these scenarios, using the median variation values and xWOBA:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(analysis_game_df, <span class="fu">aes</span>(<span class="at">x=</span>game_sd_median_swing_length, <span class="at">y=</span>game_xwOBA)) <span class="sc">+</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Team Swing Length Diversity vs. Team xwOBA"</span>,</span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Game SD of Median Swing Length"</span>,</span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Game xwOBA"</span></span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">+</span></span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pub</span>()<span class="sc">+</span></span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method=</span><span class="st">"lm"</span>, <span class="at">se=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-32-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(analysis_game_df, <span class="fu">aes</span>(<span class="at">x=</span>game_sd_median_bat_speed, <span class="at">y=</span>game_xwOBA)) <span class="sc">+</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Team Swing Speed Diversity vs. Team xwOBA"</span>,</span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Game SD of Median Bat Speed"</span>,</span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Game xwOBA"</span></span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">+</span></span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pub</span>()<span class="sc">+</span></span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method=</span><span class="st">"lm"</span>, <span class="at">se=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-32-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Takeaway #2: On a game-by-game basis, a team’s swing length consistency is correlated with better offensive production, while a team’s bat speed consistency is not.</p>
+<p>Thinking about Takeaways 1 and 2 together, it is possible that a team’s swing length consistency in a particular game points to the idea that they have prepared for a particular set of pitchers well and are able to achieve similar swing lengths to best capitalize on the attributes of the opposing pitchers or of the ballpark. However, over an entire season, it could be advantageous to have a variety of swing speeds on a roster to be able to attack the wide variety of pitchers faced, while optimal swing lengths average out over a long season and many pitchers. It is possible that swing lengths are easier to fluctuate on a per-game basis, but swing speeds are more difficult to change, thus a variety is needed on a roster.</p>
+<section id="multivariate-model" class="level4">
+<h4 class="anchored" data-anchor-id="multivariate-model">Multivariate Model</h4>
+<p>Let’s also try one multivariate model to see if we can find a relationship between swing style consistency and xwOBA.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>mod_multi <span class="ot">&lt;-</span> <span class="fu">lm</span>(game_xwOBA <span class="sc">~</span> game_sd_median_bat_speed <span class="sc">+</span> game_sd_median_swing_length,</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">data =</span> analysis_game_df)</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(mod_multi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = game_xwOBA ~ game_sd_median_bat_speed + game_sd_median_swing_length, 
+    data = analysis_game_df)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.23922 -0.04616 -0.00230  0.04443  0.23585 
+
+Coefficients:
+                              Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)                  0.3186182  0.0033550  94.969  &lt; 2e-16 ***
+game_sd_median_bat_speed     0.0021913  0.0007875   2.783  0.00541 ** 
+game_sd_median_swing_length -0.0338689  0.0072529  -4.670  3.1e-06 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.06663 on 4803 degrees of freedom
+Multiple R-squared:  0.004523,  Adjusted R-squared:  0.004108 
+F-statistic: 10.91 on 2 and 4803 DF,  p-value: 1.871e-05</code></pre>
+</div>
+</div>
+<p>In this model, both bat speed and swing length are significant at the 0.05 level, and the Adjusted R-Squared is positive. This suggests that there is a significant relationship between team swing length and bat speed consistency and team xwOBA on a game-by-game basis.</p>
+<p>This suggests that, holding swing length diversity constant, having a range of bat speeds within the lineup may help on a game-by-game basis. It could allow the team to adapt to differing pitch velocities and styles from the opposing pitchers.</p>
+<p>Meanwhile, holding bat speed diversity constant, a more consistent (less diverse) swing length appears beneficial. If everyone’s length is dialed in for that day’s pitcher(s), the team might more efficiently square up pitches or stay in the optimal “contact window.”</p>
+<p>On a single‐game basis, these results indicate that a consistent swing length is linked to better offensive output, while some diversity in bat speed can be helpful. This aligns with the idea that hitters can unify their swing lengths to match that day’s pitchers and still bring different swing speeds to handle velocity changes or relief pitchers.</p>
+<p>One possible explanation: For a particular game, a team’s swing length helps them better adjust for ballpark dimensions or aspects of the weather/environment, but a team’s bat speed diversity helps them adjust to the variety of pitchers they face.</p>
+</section>
+</section>
+<section id="question-ii-does-a-players-swing-consistency-help-or-hurt-scoring" class="level3">
+<h3 class="anchored" data-anchor-id="question-ii-does-a-players-swing-consistency-help-or-hurt-scoring">Question II: Does a player’s swing consistency help or hurt scoring?</h3>
+<p>Now, we’d like to ask whether on a player-by-player basis, does a player’s swing consistency during a season correlate with success at the plate? We will use the same weighted standard deviation formula as before, but this time we will use the player’s mean swing length and bat speed for the season. Asked another way: Does having a consistent swing over a season correlate with a particular player generating offense.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>pitches <span class="ot">&lt;-</span> pitches <span class="sc">%&gt;%</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">PA_id =</span> <span class="fu">paste</span>(game_pk, at_bat_number, <span class="at">sep=</span><span class="st">"_"</span>),</span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">batter_team =</span> <span class="fu">ifelse</span>(inning_topbot <span class="sc">==</span> <span class="st">"Bot"</span>, home_team, away_team)</span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a>player_swing_consistency <span class="ot">&lt;-</span> pitches <span class="sc">%&gt;%</span></span>
+<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(swing_length), <span class="sc">!</span><span class="fu">is.na</span>(bat_speed)) <span class="sc">%&gt;%</span></span>
+<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(batter) <span class="sc">%&gt;%</span></span>
+<span id="cb54-10"><a href="#cb54-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb54-11"><a href="#cb54-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Season-long means</span></span>
+<span id="cb54-12"><a href="#cb54-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_swing_length =</span> <span class="fu">mean</span>(swing_length, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb54-13"><a href="#cb54-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_bat_speed    =</span> <span class="fu">mean</span>(bat_speed, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb54-14"><a href="#cb54-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Season-long standard deviations</span></span>
+<span id="cb54-15"><a href="#cb54-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_swing_length =</span> <span class="fu">sd</span>(swing_length, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb54-16"><a href="#cb54-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_bat_speed    =</span> <span class="fu">sd</span>(bat_speed, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb54-17"><a href="#cb54-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb54-18"><a href="#cb54-18" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb54-19"><a href="#cb54-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-20"><a href="#cb54-20" aria-hidden="true" tabindex="-1"></a><span class="do">## Take out players with NA standard deviation</span></span>
+<span id="cb54-21"><a href="#cb54-21" aria-hidden="true" tabindex="-1"></a>player_swing_consistency <span class="ot">&lt;-</span> player_swing_consistency <span class="sc">%&gt;%</span></span>
+<span id="cb54-22"><a href="#cb54-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(sd_swing_length), <span class="sc">!</span><span class="fu">is.na</span>(sd_bat_speed))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>This gives us one row per batter, capturing that player’s overall pitch-to-pitch variation in swing metrics across the entire season.</p>
+<p>Now, let’s calculate xWOBA for all players over the season.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="co"># We'll define "final pitch" as the last pitch_number in that (game_pk, at_bat_number)</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>final_pitches <span class="ot">&lt;-</span> pitches <span class="sc">%&gt;%</span></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(game_pk, at_bat_number) <span class="sc">%&gt;%</span></span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(<span class="at">order_by =</span> pitch_number, <span class="at">n =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>final_pitches_xwoba <span class="ot">&lt;-</span> final_pitches <span class="sc">%&gt;%</span></span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(estimated_woba_using_speedangle)) <span class="sc">%&gt;%</span></span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">xWOBA_value =</span> estimated_woba_using_speedangle,</span>
+<span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">xWOBA_denom =</span> <span class="dv">1</span></span>
+<span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a>player_xwoba <span class="ot">&lt;-</span> final_pitches_xwoba <span class="sc">%&gt;%</span></span>
+<span id="cb55-15"><a href="#cb55-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(batter) <span class="sc">%&gt;%</span></span>
+<span id="cb55-16"><a href="#cb55-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb55-17"><a href="#cb55-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_xwoba_value =</span> <span class="fu">sum</span>(xWOBA_value, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb55-18"><a href="#cb55-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_xwoba_denom =</span> <span class="fu">sum</span>(xWOBA_denom, <span class="at">na.rm=</span><span class="cn">TRUE</span>),</span>
+<span id="cb55-19"><a href="#cb55-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">player_xwOBA =</span> <span class="fu">ifelse</span>(total_xwoba_denom <span class="sc">==</span> <span class="dv">0</span>, <span class="cn">NA</span>,</span>
+<span id="cb55-20"><a href="#cb55-20" aria-hidden="true" tabindex="-1"></a>                          total_xwoba_value <span class="sc">/</span> total_xwoba_denom),</span>
+<span id="cb55-21"><a href="#cb55-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb55-22"><a href="#cb55-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb55-23"><a href="#cb55-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(batter, player_xwOBA)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Now, combine into an analysis dataframe:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>player_analysis_df <span class="ot">&lt;-</span> player_swing_consistency <span class="sc">%&gt;%</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(player_xwoba, <span class="at">by=</span><span class="st">"batter"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Let’s graph these scenarios, using the median variation values and xWOBA:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(player_analysis_df, <span class="fu">aes</span>(<span class="at">x=</span>sd_swing_length, <span class="at">y=</span>player_xwOBA)) <span class="sc">+</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Player Swing Length Consistency vs. Player xwOBA"</span>,</span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Player SD of Swing Length"</span>,</span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Player xwOBA"</span></span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">+</span></span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pub</span>()<span class="sc">+</span></span>
+<span id="cb57-9"><a href="#cb57-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method=</span><span class="st">"lm"</span>, <span class="at">se=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-37-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(player_analysis_df, <span class="fu">aes</span>(<span class="at">x=</span>sd_bat_speed, <span class="at">y=</span>player_xwOBA)) <span class="sc">+</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Player Bat Speed Consistency vs. Player xwOBA"</span>,</span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Player SD of Bat Speed"</span>,</span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Player xwOBA"</span></span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">+</span></span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pub</span>()<span class="sc">+</span></span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method=</span><span class="st">"lm"</span>, <span class="at">se=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-37-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Let’s also create linear models to see if there is a significant relationship between player swing consistency and player xwOBA.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>model_sd_swing_length <span class="ot">&lt;-</span> <span class="fu">lm</span>(player_xwOBA <span class="sc">~</span> mean_swing_length <span class="sc">+</span> sd_swing_length, <span class="at">data=</span>player_analysis_df)</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_sd_swing_length)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = player_xwOBA ~ mean_swing_length + sd_swing_length, 
+    data = player_analysis_df)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.28461 -0.02441  0.00420  0.02957  0.45818 
+
+Coefficients:
+                   Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)        0.255807   0.044570   5.739 1.46e-08 ***
+mean_swing_length  0.014405   0.005614   2.566   0.0105 *  
+sd_swing_length   -0.074224   0.011873  -6.252 7.39e-10 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.05872 on 644 degrees of freedom
+Multiple R-squared:  0.0837,    Adjusted R-squared:  0.08085 
+F-statistic: 29.41 on 2 and 644 DF,  p-value: 5.977e-13</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>model_sd_bat_speed <span class="ot">&lt;-</span> <span class="fu">lm</span>(player_xwOBA <span class="sc">~</span> mean_bat_speed <span class="sc">+</span> sd_bat_speed, <span class="at">data=</span>player_analysis_df)</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_sd_bat_speed)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = player_xwOBA ~ mean_bat_speed + sd_bat_speed, data = player_analysis_df)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.28346 -0.02297  0.00717  0.02965  0.45133 
+
+Coefficients:
+                 Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)    -0.1240647  0.0614252  -2.020   0.0438 *  
+mean_bat_speed  0.0060523  0.0008243   7.342 6.36e-13 ***
+sd_bat_speed   -0.0003156  0.0010415  -0.303   0.7620    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.05818 on 644 degrees of freedom
+Multiple R-squared:  0.1005,    Adjusted R-squared:  0.09771 
+F-statistic: 35.98 on 2 and 644 DF,  p-value: 1.544e-15</code></pre>
+</div>
+</div>
+<p>In both models, the Adjusted R-Squared is positive, and the p-value of the coefficient is significant at the 0.05 level. This suggests that there is a significant relationship between player swing consistency and player xwOBA for both swing length and bat speed. The coefficients are negative, suggesting that a more consistent swing length and bat speed is correlated with better offensive production. This likely points to the idea that the best hitters have found optimal swing lengths and bat speeds, and while they will likely slightly deviate from them to better match the pitcher, they have less reason to adjust over the entire season. Worse hitters need to continuously adjust their swings over the season in searching for their best swing type.</p>
+<section id="multivariate-model-1" class="level4">
+<h4 class="anchored" data-anchor-id="multivariate-model-1">Multivariate Model</h4>
+<p>Let’s also try one multivariate model to see if we can find a relationship between player swing consistency and xwOBA.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>mod_multi <span class="ot">&lt;-</span> <span class="fu">lm</span>(player_xwOBA <span class="sc">~</span> mean_swing_length <span class="sc">+</span> mean_bat_speed <span class="sc">+</span> sd_swing_length <span class="sc">+</span> sd_bat_speed,</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">data =</span> player_analysis_df)</span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(mod_multi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = player_xwOBA ~ mean_swing_length + mean_bat_speed + 
+    sd_swing_length + sd_bat_speed, data = player_analysis_df)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.25051 -0.02456  0.00750  0.02774  0.44048 
+
+Coefficients:
+                    Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)       -0.0560129  0.0607960  -0.921    0.357    
+mean_swing_length -0.0084696  0.0067087  -1.262    0.207    
+mean_bat_speed     0.0066330  0.0009783   6.780 2.73e-11 ***
+sd_swing_length   -0.1243124  0.0187631  -6.625 7.34e-11 ***
+sd_bat_speed       0.0077605  0.0015873   4.889 1.28e-06 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.05632 on 642 degrees of freedom
+Multiple R-squared:  0.1599,    Adjusted R-squared:  0.1546 
+F-statistic: 30.54 on 4 and 642 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(car)</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="fu">vif</span>(mod_multi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>mean_swing_length    mean_bat_speed   sd_swing_length      sd_bat_speed 
+         1.677701          1.928688          2.934572          3.180154 </code></pre>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Show collinearity between predictors</span></span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cor</span>(player_analysis_df<span class="sc">$</span>sd_swing_length, player_analysis_df<span class="sc">$</span>sd_bat_speed)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.8117863</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cor</span>(player_analysis_df<span class="sc">$</span>mean_swing_length, player_analysis_df<span class="sc">$</span>mean_bat_speed)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.6349418</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cor</span>(player_analysis_df<span class="sc">$</span>mean_swing_length, player_analysis_df<span class="sc">$</span>sd_swing_length)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -0.2732526</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cor</span>(player_analysis_df<span class="sc">$</span>mean_bat_speed, player_analysis_df<span class="sc">$</span>sd_bat_speed)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -0.4694914</code></pre>
+</div>
+</div>
+<p>Although our VIF values are all less than 5, suggesting that multicollinearity is likely not a problem and just a result of using real imperfect data, we can try to create a “mechanical variability” combined component using Principal Components Analysis to combine the two predictors into one.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: Standardize variables</span></span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>player_analysis_df <span class="ot">&lt;-</span> player_analysis_df <span class="sc">%&gt;%</span></span>
+<span id="cb77-3"><a href="#cb77-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb77-4"><a href="#cb77-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_swing_length_scaled =</span> <span class="fu">scale</span>(sd_swing_length),</span>
+<span id="cb77-5"><a href="#cb77-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_bat_speed_scaled =</span> <span class="fu">scale</span>(sd_bat_speed)</span>
+<span id="cb77-6"><a href="#cb77-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb77-7"><a href="#cb77-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb77-8"><a href="#cb77-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: Perform PCA</span></span>
+<span id="cb77-9"><a href="#cb77-9" aria-hidden="true" tabindex="-1"></a>pca_model <span class="ot">&lt;-</span> <span class="fu">prcomp</span>(player_analysis_df[, <span class="fu">c</span>(<span class="st">"sd_swing_length_scaled"</span>, <span class="st">"sd_bat_speed_scaled"</span>)],</span>
+<span id="cb77-10"><a href="#cb77-10" aria-hidden="true" tabindex="-1"></a>                    <span class="at">center =</span> <span class="cn">TRUE</span>, <span class="at">scale. =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb77-11"><a href="#cb77-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb77-12"><a href="#cb77-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: Add first principal component to the dataset</span></span>
+<span id="cb77-13"><a href="#cb77-13" aria-hidden="true" tabindex="-1"></a>player_analysis_df <span class="ot">&lt;-</span> player_analysis_df <span class="sc">%&gt;%</span></span>
+<span id="cb77-14"><a href="#cb77-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">mechanical_variability =</span> pca_model<span class="sc">$</span>x[, <span class="dv">1</span>])</span>
+<span id="cb77-15"><a href="#cb77-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb77-16"><a href="#cb77-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Check PCA results</span></span>
+<span id="cb77-17"><a href="#cb77-17" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(pca_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Importance of components:
+                          PC1     PC2
+Standard deviation     1.3460 0.43384
+Proportion of Variance 0.9059 0.09411
+Cumulative Proportion  0.9059 1.00000</code></pre>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">lm</span>(player_xwOBA <span class="sc">~</span> mean_swing_length <span class="sc">+</span> mean_bat_speed <span class="sc">+</span> mechanical_variability,</span>
+<span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a>            <span class="at">data =</span> player_analysis_df)</span>
+<span id="cb79-3"><a href="#cb79-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = player_xwOBA ~ mean_swing_length + mean_bat_speed + 
+    mechanical_variability, data = player_analysis_df)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.28904 -0.02304  0.00739  0.02948  0.44140 
+
+Coefficients:
+                         Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)            -0.0595545  0.0567898  -1.049   0.2947    
+mean_swing_length      -0.0086844  0.0068948  -1.260   0.2083    
+mean_bat_speed          0.0059808  0.0009995   5.984 3.62e-09 ***
+mechanical_variability -0.0048351  0.0018997  -2.545   0.0112 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.05788 on 643 degrees of freedom
+Multiple R-squared:  0.1112,    Adjusted R-squared:  0.1071 
+F-statistic: 26.82 on 3 and 643 DF,  p-value: 2.363e-16</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show Code</summary>
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="fu">vif</span>(model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>     mean_swing_length         mean_bat_speed mechanical_variability 
+              1.677655               1.905632               1.260858 </code></pre>
+</div>
+</div>
+<p>Our VIFs are again under 5, signalling that this is a good model.</p>
+<p>Takeaway #3: On a player-by-player basis, a player’s swing consistency is correlated with better offensive production. This is likely because the best players have found their optimal swing lengths and bat speeds, and while they will slightly deviate from them to better match the pitcher, they have less reason to adjust over the entire season. Worse hitters need to continuously adjust their swings over the season in searching for their best swing type.</p>
 
 
+</section>
+</section>
 </section>
 
 </main> <!-- /main -->
