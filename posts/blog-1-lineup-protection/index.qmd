@@ -18,13 +18,13 @@ There are two main ways to study lineup protection:
 
 Hall of Famer Miguel Cabrera attributed part of his power struggles early in the 2019 season to a lack of lineup protection, essentially calling out productive-yet-not-spectacular hitter behind him, Niko Goodrum, saying, "In the past... I got a big bat behind me. You see the way guys pitch me? that explains everything." His manager responded by saying his statement was "crazy." Data revealed that he wasn't getting particularly fewer fastballs, strikes, or good pitches to hit in general, and that in his particular case, there wasn't evidence for lineup protection (Stavenhagen, 2019).
 
-**Hitter Outcome Analysis:** Investigating whether the quality of the next hitter influences the current hitter’s performance. Pre-Pitch F/X research found that pitchers who know that a good hitter is up next will "pitch around" the current hitter, resulting in significantly more walks, and moderately more strikeouts. However, it found that when it comes to putting the ball in play, there was no significant impact (Tango, 2006). Much of the sabermetric community says that lineup protection is a myth, and that a player's production is almost solely determined by their own skills; luck and random variation also play a small role (Ambrosino, 2011).\
+**Hitter Outcome Analysis:** Investigating whether the quality of the next hitter influences the current hitter’s performance. Pre-Pitch F/X research found that pitchers who know that a good hitter is up next will "pitch around" the current hitter, resulting in significantly more walks, and moderately more strikeouts. However, it found that when it comes to putting the ball in play, there was no significant impact (Tango, 2006). Much of the sabermetric community says that lineup protection is a myth, and that a player's production is almost solely determined by their own skills; luck and random variation also play a small role (Ambrosino, 2011).
 
 However, a study in 2011 found that power numbers did have significant differences in situations of potential lineup protection (Phillips, 2011).
 
 Much of this hitter outcome analysis is rather anecdotal, focusing on specific players and how they fare with protection. Using over 3000 Plate Appearances from Pete Alonso's career using data from before his 2024 season, we can see higher slugging percentages with better hitters behind him, along with being 11% more likely to homer. With worse protection, he is more likely to walk, although his strikeout rates go against previous research and actually decrease with poor hitters behind him (Britton, 2024). Other research takes specific teams and analyzes whether the topic of lineup protection even applies and whether it serves a purpose in that roster's decision-making. When the Diamondbacks acquired Mark Trumbo in 2014, writers brought up the fact that even though Trumbo's power threat could serve to protect Paul Goldschmidt, Trumbo may not even be much better than other Diamondbacks hitters who could replace him in terms of offensive threat in general (Wiser, 2014). In 2015, Billy Hamilton pointed to a different sort of offensive advantage owing to the hitter behind him–knowing Joey Votto was hitting after him, an incredibly selective hitter often with long counts, allowed Hamilton to be patient and wait for the right pitch to steal on. In this situation, with a small sample size, the threat of Votto was preventing opposing pitchers from throwing fastballs with Hamilton on base, allowing Hamilton to get better base-stealing opportunities (Petriello, 2015).
 
-It is worth noting that many within baseball discuss lineup protection with certainty. Alonso had pushed for J.D. Martinez to join and hit behind him for the Mets in 2024. Interviews with several within the game in 2015 resulted in a plethora of answers, from Joe Girardi saying lineup protection was most significant in lefty-righty matchups, Madison Bumgarner saying he doesn't pay attention to the on-deck circle, Tim Hudson saying that it's "foolish if you don't look at the next hitter," and multiple other pitchers saying it is a factor in their decision-making, especially later in the game.
+It is worth noting that many within baseball discuss lineup protection with certainty. Alonso had pushed for J.D. Martinez to join and hit behind him for the Mets in 2024. Interviews with several within the game in 2015 resulted in a plethora of answers, from Joe Girardi saying lineup protection was most significant in lefty-righty matchups, Madison Bumgarner saying he doesn't pay attention to the on-deck circle, Tim Hudson saying that it's "foolish if you don't look at the next hitter," and multiple other pitchers saying it is a factor in their decision-making, especially later in the game (Laurila, 2016).
 
 ## Aim
 
@@ -32,9 +32,9 @@ This article aims to provide further insights into lineup protection using pitch
 
 ## Setup
 
-We would like our independent variables to be the following.
+We would like our independent variables to be the following:
 
--   Current batter and pitcher random effects
+-   Current pitcher random effects
 
 -   Current hitter's handedness and underlying quality (xwOBA)
 
@@ -48,7 +48,7 @@ We would like our independent variables to be the following.
 
 Previous studies have looked at protection as a binary independent variable, but that is a narrow view on lineup protection. Lineup protection must be considered as a continuous variable because some players will protect more than others.
 
-Our outcome variable will be that plate appearance's xwOBA, which will essentially give us the quality of that plate appearance based on the independent variables We would then like to see what factor the quality of the next batter has in the outcome.
+Our outcome variable will be that plate appearance's xwOBA, which will essentially give us the quality of that plate appearance based on the independent variables. We would then like to see what factor the quality of the next batter has in the outcome.
 
 ## Methods
 
@@ -56,16 +56,20 @@ First, we loaded in our libraries and read the data, which contains almost every
 
 ```{r}
 #| echo: false
+#| output: false
+
 library(tidyverse)
 library(lme4)
 library(lmerTest)
 library(ggeffects)
-library(readr)
+library(car)
+library(pubtheme)
 ```
 
 ```{r}
-statcast_url = "https://lances-lineups-data.s3.us-east-2.amazonaws.com/statcast_data.csv"
-statcast_data <- read_csv(statcast_url)
+# url included if we wanted to use read_csv with this data from an AWS S3 bucket
+# statcast_url = "https://lances-lineups-data.s3.us-east-2.amazonaws.com/statcast_data.csv"
+statcast_data <- read.csv("../../data/statcast_data.csv")
 ```
 
 For each plate appearance, we aggregate key variables. We calculate `pa_xwOBA` as the average `estimated_woba_using_speedangle` for that plate appearance. We also compute run differential as the difference between `bat_score` and `fld_score` using the first pitch in the plate appearance, which reflects the score before the plate appearance starts.
@@ -80,7 +84,7 @@ pa_data <- statcast_data %>%
     batter_handedness = first(stand),
     inning_topbot = first(inning_topbot),
     # Calculate PA xwOBA from pitch-by-pitch data:
-    pa_xwOBA = mean(estimated_woba_using_speedangle, na.rm = TRUE),
+    pa_xwOBA = max(estimated_woba_using_speedangle, na.rm = TRUE),
     outs_when_up = first(outs_when_up),
     # Compute run differential at the time the PA begins:
     run_diff = first(bat_score) - first(fld_score),
@@ -176,71 +180,153 @@ We then calculate the current batter's season-long xwOBA and the outcome differe
 
 ```{r}
 # (a) For each current batter, calculate their season-long baseline PA xwOBA.
-current_baseline <- pa_data_qualified %>%
+current_hitter_skill <- pa_data_qualified %>%
   group_by(batter) %>%
-  summarize(baseline_current = mean(pa_xwOBA, na.rm = TRUE), .groups = "drop")
+  summarize(current_hitter_skill = mean(pa_xwOBA, na.rm = TRUE), .groups = "drop")
 
 # (b) Merge the baseline back into our data and compute outcomeDiff:
 # outcomeDiff = PA xwOBA - current batter's baseline xwOBA.
 pa_data_qualified <- pa_data_qualified %>%
-  left_join(current_baseline, by = "batter") %>%
-  mutate(outcomeDiff = pa_xwOBA - baseline_current)
+  left_join(current_hitter_skill, by = "batter") %>%
+  mutate(outcomeDiff = pa_xwOBA - current_hitter_skill)
 ```
 
 We then calculate the next batter's season-long xwOBA.
 
 ```{r}
 # Next batter's baseline xwOBA
-next_baseline <- pa_data_qualified %>%
+next_hitter_skill <- pa_data_qualified %>%
   group_by(potential_next_batter) %>%
-  summarize(baseline_next = mean(pa_xwOBA, na.rm = TRUE), .groups = "drop")
+  summarize(next_hitter_skill = mean(pa_xwOBA, na.rm = TRUE), .groups = "drop")
 
 # Merge next batter's baseline
 pa_data_qualified <- pa_data_qualified %>%
-  left_join(next_baseline, by = c("potential_next_batter" = "potential_next_batter"))
+  left_join(next_hitter_skill, by = c("potential_next_batter" = "potential_next_batter"))
 
 # nextHitterSkill
 pa_data_qualified <- pa_data_qualified %>%
   mutate(
-    nextHitterSkill = baseline_next
+    next_hitter_skill = next_hitter_skill
   )
+
+
   
 ```
 
-Now, let's create our mixed-effects linear model and graph!
+## Diagnostic Statistics and Model Assumptions Checks
+
+### Histogram of OutcomeDiff
+
+First, let's create a histogram of OutcomeDiff to check
+
+### Check for NA values
+
+## Model #1: Mixed Effects Linear Model
+
+Let's create a mixed effects linear model predicting the difference in expected outcome for the current hitter (their season-long xwOBA) with a variety of game-state variables, including `next_hitter_skill`, which is the season-long xwOBA of the following hitter.
 
 ```{r}
+# Convert certain variables to factors
 pa_data_qualified$batter_handedness <- factor(pa_data_qualified$batter_handedness)
 pa_data_qualified$potential_next_batter_handedness <- factor(pa_data_qualified$potential_next_batter_handedness)
+pa_data_qualified$batter = factor(pa_data_qualified$batter)
+pa_data_qualified$pitcher = factor(pa_data_qualified$pitcher)
+pa_data_qualified$baserunner_state <- factor(pa_data_qualified$baserunner_state)
+pa_data_qualified$inning = factor(pa_data_qualified$inning)
 
-# Fit model!
-m_protection <- lmer(
-  outcomeDiff ~ nextHitterSkill + batter_handedness + potential_next_batter_handedness + 
-    baserunner_state + outs_when_up + inning + run_diff +
-    (1 | batter) + (1 | pitcher),
+# Treat outs as a factor because not continuous
+pa_data_qualified$outs_when_up <- factor(pa_data_qualified$outs_when_up)
+
+
+m_protection_1 <- lmer(
+  outcomeDiff ~ next_hitter_skill + batter_handedness + potential_next_batter_handedness + 
+    baserunner_state + outs_when_up + inning + run_diff + (1 | pitcher),
   data = pa_data_qualified
 )
+```
 
+Before we look at our model summary, let's check the assumptions of our model.
 
-summary(m_protection)
+```{r}
+# Check for normality of residuals
+qqnorm(resid(m_protection_1))
+
+# Check for homoscedasticity
+plot(fitted(m_protection_1), resid(m_protection_1))
+
+# Check for multicollinearity
+vif(m_protection_1)
 ```
 
 Based on our mixed-effects model, we find that when we account for all of the aspects of the game situation, the next batter's skill level has a statistically significant effect on the outcomeDiff, meaning better on-deck hitters (above league average) correlate with higher performance (relative to the batter’s own baseline). We find that a 1-unit increase in xwOBA is associated with a 0.3246 increase in the current PA's outcomeDiff.
 
 Our random variation at the pitcher level (\~0.015) shows us that some pitchers systematically allow slightly higher or lower outcomeDiff.
 
+## Model #1a: Scaled Version of Model 1
+
+```{r}
+pa_data_qualified$next_hitter_skill_centered <- 
+    pa_data_qualified$next_hitter_skill - mean(pa_data_qualified$next_hitter_skill, na.rm = TRUE)
+
+pa_data_qualified$next_hitter_skill_scaled <- 
+    scale(pa_data_qualified$next_hitter_skill, center = TRUE, scale = TRUE)
+
+pa_data_qualified$outcomeDiff_scaled = scale(pa_data_qualified$outcomeDiff, center = TRUE, scale = TRUE)
+
+m_protection_1_scaled <- lmer(
+  outcomeDiff ~ next_hitter_skill_scaled + batter_handedness + potential_next_batter_handedness + 
+    baserunner_state + outs_when_up + inning + run_diff + (1 | pitcher),
+  data = pa_data_qualified
+)
+
+
+summary(m_protection_1_scaled, correlation = TRUE)
+
+anova(m_protection_1_scaled)
+```
+
+## Model #2: Direct Linear Effects Model on `pa_xwoba`
+
+For this model, we will look to directly predict the xwOBA of every plate appearance using both `current_hitter_skill`, the xwOBA of the current hitter, and `next_hitter_skill`, the xwOBA of the following hitter, as predictors.
+
+```{r}
+m_protection_2 <- lmer(
+  pa_xwOBA ~ current_hitter_skill + next_hitter_skill + batter_handedness + potential_next_batter_handedness + 
+    baserunner_state + outs_when_up + inning + run_diff + (1 | pitcher),
+  data = pa_data_qualified
+)
+
+
+summary(m_protection_2)
+```
+
+## Model #3: Logistic Mixed-Effects Model
+
+In this model, we'd like to answer the question: How does the next hitter predict whether we do better than `current_hitter_skill` (the current hitter's season-long xwOBA),
+
+```{r}
+pa_data_qualified$better_than_baseline <- ifelse(pa_data_qualified$pa_xwOBA > pa_data_qualified$current_hitter_skill, 1, 0)
+
+m_protection_3 = glmer(better_than_baseline ~ next_hitter_skill_scaled + batter_handedness + potential_next_batter_handedness + 
+    baserunner_state + outs_when_up + inning + run_diff + (1 | pitcher), 
+    family = binomial, data = pa_data_qualified)
+
+
+summary(m_protection_3)
+```
+
 ## Visualizations
 
 ```{r}
-ggplot(pa_data_qualified, aes(x = nextHitterSkill, y = outcomeDiff)) +
+ggplot(pa_data_qualified, aes(x = next_hitter_skill, y = outcomeDiff)) +
   geom_point(color = "red", alpha = 0.3) +
-  geom_smooth(method = "lm", se = TRUE, color = "blue") +
+  geom_smooth(method = "loess", se = TRUE, color = "blue") +
   labs(
     title = "NextHitterSkill vs. OutcomeDiff (Loess Smooth)",
     x = "Next Hitter Skill (xwOBA)",
     y = "Outcome Difference"
   ) +
-  theme_minimal()
+  theme_pub()
 
 ```
 
@@ -248,10 +334,9 @@ Let's also make a visualization showing how different pitchers are in terms of t
 
 ```{r}
 m_protection_slope <- lmer(
-  outcomeDiff ~ nextHitterSkill + batter_handedness + potential_next_batter_handedness +
+  outcomeDiff ~ next_hitter_skill + batter_handedness + potential_next_batter_handedness +
     baserunner_state + outs_when_up + inning + run_diff +
-    # (1 + nextHitterSkill | pitcher) adds a random slope for nextHitterSkill
-    (1 + nextHitterSkill | pitcher) +
+    (1 + next_hitter_skill | pitcher) +
     (1 | batter),
   data = pa_data_qualified
 )
@@ -265,7 +350,7 @@ anova(m_protection, m_protection_slope, refit = FALSE)
 ```{r}
 ranefs <- ranef(m_protection_slope)
 
-# This is a list with $pitcher and $batter (since you have random effects for both).
+# This is a list with $pitcher and $batter
 pitcher_re <- ranefs$pitcher
 # Convert to a data frame
 pitcher_re_df <- as.data.frame(pitcher_re)
@@ -283,7 +368,7 @@ pitcher_re_df$pitcher_id <- rownames(pitcher_re)
 ggplot(pitcher_re_df, aes(x = random_slope_for_skill)) +
   geom_histogram(bins = 30, fill = "darkgreen", color = "white") +
   labs(
-    title = "Distribution of Pitcher Random Slopes for nextHitterSkill",
+    title = "Distribution of Pitcher Random Slopes for Protector xwOBA",
     x = "Random Slope (deviation from average slope)",
     y = "Count"
   ) +
