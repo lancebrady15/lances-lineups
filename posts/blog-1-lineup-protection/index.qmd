@@ -12,7 +12,7 @@ image: blog1.jpg
 
 1.  Lineup protection seemed to have a tangible effect on the outcomes of the current hitter in 2024.
 
-2.  Different pitchers are effected differently
+2.  Pitchers are affected differently by lineup protection.
 
 ## Introduction to Lineup Protection
 

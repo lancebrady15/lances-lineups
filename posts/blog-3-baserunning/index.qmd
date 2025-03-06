@@ -1,8 +1,8 @@
 ---
-title: "Blog #3: Baserunning"
+title: "Blog Post #3: Baserunning"
 author: "Lance Brady"
 date: "2025-03-05"
-categories: [swing profiles, lineups, statcast]
+categories: [baserunning, lineups, statcast]
 format: html
 editor: visual
 image: blog3.jpg
