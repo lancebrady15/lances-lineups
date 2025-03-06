@@ -10,6 +10,686 @@ image: blog2.jpg
 
 ## Introduction to Swing Profile Data
 
-Talk about origin of data, what has been done.
+**Overview**
 
-## Current Findings
+Recent advances in Statcast technology have allowed for the direct measurement of bat speed and swing length on pitches where the batter swings. These new metrics open the door to exploring questions that were previously left to inference, scouting reports, or assumptions about mechanics. Specifically, we have become interested in the idea of swing consistency: How much do a batter’s bat speed and swing length deviate from pitch to pitch or from game to game? How do differing swing profiles on a roster correlate with run generation during a game?
+
+This article addresses three connected but distinct angles on these new metrics:
+
+**Individual-Level Swing Diversity:** Do stable or volatile swing metrics for a single batter over a season correlate with that batter’s offensive success, measured through wOBA or xwOBA?
+
+**Game-Level Team Swing Diversity:** Does a club whose hitters share similar or very different swing metrics on a given day see any advantage in that day’s run production?
+
+Our analysis aims not to prove a direct cause-and-effect relationship but rather to uncover whether correlations exist that might guide roster construction, daily lineup decisions, or player development. Given that these bat speed and swing length metrics are new, we expect some initial findings to be exploratory, setting the stage for deeper or more controlled studies in the future.
+
+**Fundamental Questions Of Our Study**
+
+1.  **Individual**: Is consistency associated with higher personal performance once I factor out average skill?
+
+2.  **Game**: On a day-to-day basis, does having a consistent or varied approach correlate with daily offensive output?
+
+## Methods
+
+First, we loaded in our libraries and read the data, which contains almost every pitch from the 2024 season (excluding when poor data was retrieved).
+
+```{r}
+#| echo: false
+#| output: false
+
+library(tidyverse)
+```
+
+```{r}
+# url included if we wanted to use read_csv with this data from an AWS S3 bucket
+# statcast_url = "https://lances-lineups-data.s3.us-east-2.amazonaws.com/statcast_data.csv"
+statcast_data <- read.csv("../../data/statcast_data.csv")
+```
+
+### Question I: Does having a variety of average swing characteristics across players on the roster help or hurt scoring?
+
+#### Question IA: Does Variation in Swing Length or Swing Speed individually help a Team across a season?
+
+We will want to create a weighted standard deviation-like metric for a team's between-player swing style, either swing length or swing speed, variation. This will essentially be a weighted standard deviation of a team's player's average swing style for those two variables. I decide to give weight to each player by Plate Appearances, not by number of swings. This is because for a particular team, we do not want to overweight the free-swinging players just because they have more swing data. We want to consider player-team combinations, so that a player's plate appearances for a certain team are treated separately from their plate appearances for another team, if they played for multiple teams in this season for some reason. This will account for the fact that a player might change swing characteristics upon getting to a new team.
+
+First, let's create a unique ID for each Plate Appearance in `pitches`.
+
+For each at-bat, decide if the batter is on the `home_team` (if `inning_topbot` == "Bot") or the `away_team` (if `inning_topbot` == "Top"). This assignment handles trades automatically, because the data for each game has the correct home/away teams for that date.
+
+```{r}
+pitches <- pitches %>%
+  mutate(
+    PA_id = paste(game_pk, at_bat_number, sep="_"),
+    batter_team = ifelse(inning_topbot == "Bot", home_team, away_team)
+  )
+```
+
+At this point, a single batter can have multiple rows with different batter_team values if they switched teams mid-season. Each row corresponds to a single plate appearance.
+
+Now we define each combination (batter, batter_team) separately, so we only include that player’s PAs while on that team.
+
+```{r}
+# Each (batter, batter_team) combination with total PAs
+batter_team_pa_count <- pitches %>%
+  group_by(batter, batter_team) %>%
+  distinct(PA_id) %>%
+  summarise(total_PA_for_that_team = n(), .groups="drop") %>%
+  arrange(batter, batter_team)
+```
+
+Checking players who switched teams midway through, like Justin Turner, who had 349 PAs for Toronto along with 190 PAs for Seattle, we can see that the `batter_team_pa_count` is about correct. We get 332 and 189 PAs in our data respectively, likely due to some missing data.
+
+To get mean swing length for a player, we need to use only the rows from the times the batter was on that team. That means merging in batter_team_map so we can group by (batter, batter_team).
+
+```{r}
+batter_team_swing_stats <- pitches %>%
+  # Keep rows where swing_length and bat_speed are not NA
+  filter(!is.na(swing_length), !is.na(bat_speed)) %>%
+  group_by(batter, batter_team) %>%
+  summarise(
+    mean_swing_length = mean(swing_length, na.rm=TRUE),
+    mean_bat_speed = mean(bat_speed, na.rm=TRUE), # Will need in Question IB
+    sd_swing_length = sd(swing_length, na.rm=TRUE), # Will need later
+    sd_bat_speed = sd(bat_speed, na.rm=TRUE), # Will need later
+    .groups="drop"
+  )
+```
+
+For each batter-team combination, we now have the mean swing length and bat speed, along with standard deviation. We can now calculate the weighted standard deviation of swing length for each team.
+
+We want to first add the total PA for each batter-team combination to the `batter_team_swing_stats` data frame. This will allow us to weight the standard deviation of swing length by the number of plate appearances for each player.
+
+```{r}
+batter_team_swing_stats <- batter_team_swing_stats %>%
+  left_join(batter_team_pa_count, by=c("batter", "batter_team"))
+```
+
+We’ll define a small helper to compute weighted SD:
+
+```{r}
+weighted_sd <- function(x, w) {
+  w_mean <- sum(x * w, na.rm=TRUE) / sum(w, na.rm=TRUE)
+  w_var  <- sum(w * (x - w_mean)^2, na.rm=TRUE) / sum(w, na.rm=TRUE)
+  sqrt(w_var)
+}
+```
+
+```{r}
+team_diversity <- batter_team_swing_stats %>%
+  group_by(batter_team) %>%
+  summarise(
+    # Weighted SD of each player's mean bat_speed
+    team_sd_mean_bat_speed = weighted_sd(mean_bat_speed, total_PA_for_that_team),
+    # Weighted SD of each player's mean swing_length
+    team_sd_mean_swing_length = weighted_sd(mean_swing_length, total_PA_for_that_team),
+    .groups="drop"
+  )
+```
+
+We now have the weighted standard deviation of swing length for each team. We can now check if this variation in swing length helps or hurts scoring. We will use wOBA and xWOBA as proxies for scoring. We will do these calculations manually as our dataset does not include all 2024 Plate Appearances so we will only focus on our subset of the data. We will use the `woba_value` and `woba_denom` column in `pitches` to calculate wOBA for each plate appearance. We will then calculate the average wOBA for each team.
+
+Typically, wOBA is credited once per completed PA (plate appearance). In many Statcast datasets, woba_value and woba_denom are only non-zero on the final pitch of the PA. However, to ensure we only count each PA once, we can explicitly slice the final pitch of each (game_pk, at_bat_number).
+
+```{r}
+# We'll define "final pitch" as the last pitch_number in that (game_pk, at_bat_number)
+final_pitches <- pitches %>%
+  group_by(game_pk, at_bat_number) %>%
+  slice_max(order_by = pitch_number, n = 1) %>%
+  ungroup()
+```
+
+Now final_pitches has exactly 1 row per completed PA. This is our formula for wOBA:
+
+Upon inspecting the data, we can see that there are some rows for which `woba_value` or `woba_denom` are NA, so we will filter those out.
+
+```{r}
+final_pitches_clean <- final_pitches %>%
+  filter(!is.na(woba_denom), !is.na(woba_value))
+```
+
+```{r}
+team_woba <- final_pitches_clean %>%
+  group_by(batter_team) %>%
+  summarise(
+    total_woba_value = sum(woba_value, na.rm=TRUE),
+    total_woba_denom = sum(woba_denom, na.rm=TRUE),
+    team_wOBA = ifelse(total_woba_denom == 0, NA,
+                       total_woba_value / total_woba_denom),
+    .groups="drop"
+  ) %>%
+  select(-total_woba_value, -total_woba_denom) %>%
+  arrange(desc(team_wOBA))
+```
+
+This list seems to make sense and is in line with overall 2024 data. Typically, woba_denom is 1 for outcomes like walks, hit-by-pitch, or batted-ball events. For sacrifice flies or other rare events, it can vary slightly. The sum of woba_denom for a team is essentially the sum of PAs used in the wOBA formula (excluding some events like catcher interference or maybe intentionals, depending on how MLBAM codes them). So, its sum is essentially "the count of wOBA-relevant plate appearances".
+
+```{r}
+analysis_df <- team_diversity %>%
+  left_join(team_woba,  by="batter_team")
+```
+
+We can also calculate xwOBA for each team. xwOBA is a more advanced metric that uses exit velocity and launch angle to estimate the expected wOBA for each batted ball. We will use the `estimated_woba_using_speedangle` column in `pitches` to calculate xwOBA for each batted-ball plate appearance, then account for walks, hit-by-pitches, etc. We will then calculate the average xwOBA for each team.
+
+```{r}
+final_pitches_xwoba <- final_pitches %>%
+  filter(!is.na(estimated_woba_using_speedangle)) %>%
+  mutate(
+    xWOBA_value = estimated_woba_using_speedangle,
+    xWOBA_denom = 1
+  )
+```
+
+```{r}
+team_xwoba <- final_pitches_xwoba %>%
+  group_by(batter_team) %>%
+  summarise(
+    total_xwoba_value = sum(xWOBA_value, na.rm=TRUE),
+    total_xwoba_denom = sum(xWOBA_denom, na.rm=TRUE),
+    team_xwOBA = ifelse(total_xwoba_denom == 0, NA,
+                        total_xwoba_value / total_xwoba_denom),
+    .groups="drop"
+  ) %>%
+  select(-total_xwoba_value, -total_xwoba_denom) %>%
+  arrange(desc(team_xwOBA))
+```
+
+This also seems to make sense and is in line with overall 2024 data.
+
+```{r}
+analysis_df <- analysis_df %>%
+  left_join(team_xwoba, by="batter_team")
+```
+
+#### Bat Speed
+
+```{r}
+ggplot(analysis_df, aes(x=team_sd_mean_bat_speed, y=team_wOBA)) +
+  geom_point() +
+  labs(
+    title="Team Swing Speed Diversity vs. Team wOBA",
+    x="Team SD of Mean Bat Speed",
+    y="Team wOBA"
+  )+
+  theme_pub()+
+  ## Add trendline
+  geom_smooth(method="lm", se=TRUE)
+```
+
+Let's create a linear model to see if there is a significant relationship between team swing speed diversity and team wOBA.
+
+```{r}
+lm_woba <- lm(team_wOBA ~ team_sd_mean_bat_speed, data=analysis_df)
+summary(lm_woba)
+```
+
+In this linear model, we get a negative Adjusted R-squared, signalling that there’s almost no linear relationship—in other words, once the penalty for adding a predictor is applied, the model explains less variance than just using the mean. The p-value is 0.341, which is insignificant at the 0.05 level. This suggests that there is no significant relationship between team swing speed diversity and team wOBA.
+
+Let's also check the relationship between team swing speed diversity and team xwOBA.
+
+```{r}
+ggplot(analysis_df, aes(x=team_sd_mean_bat_speed, y=team_xwOBA)) +
+  geom_point() +
+  labs(
+    title="Team Swing Speed Diversity vs. Team xwOBA",
+    x="Team SD of Mean Bat Speed",
+    y="Team xwOBA"
+  )+
+  theme_pub()+
+  geom_smooth(method="lm", se=TRUE)
+```
+
+```{r}
+lm_xwoba <- lm(team_xwOBA ~ team_sd_mean_bat_speed, data=analysis_df)
+summary(lm_xwoba)
+```
+
+The Adjusted R-Squared for this model is positive, and the p-value of team-level bat speed diversity has gone down to 0.177. It is possible that with more data from other seasons, we would be able to see more signficiant relationships between team-level bat speed diversity and team xwOBA.
+
+However, at this point, it is worth noting that our data is pointing to the possibility of a relationship, even if it is small, between team-level bat speed diversity and team xwOBA. This is worth more exploration.
+
+Let's do the same for swing length.
+
+#### Swing Length
+
+```{r}
+ggplot(analysis_df, aes(x=team_sd_mean_swing_length, y=team_wOBA)) +
+  geom_point() +
+  labs(
+    title="Team Swing Length Diversity vs. Team wOBA",
+    x="Team SD of Mean Swing Length",
+    y="Team wOBA"
+  )+
+  theme_pub()+
+  geom_smooth(method="lm", se=TRUE)
+```
+
+```{r}
+lm_woba <- lm(team_wOBA ~ team_sd_mean_swing_length, data=analysis_df)
+summary(lm_woba)
+
+```
+
+The Adjusted R-squared for swing length is also negative, and the p-value is 0.823, which is insignificant at the 0.05 level. This suggests that there is no significant relationship between team swing length diversity and team wOBA.
+
+Let's also check the relationship between team swing length diversity and team xwOBA.
+
+```{r}
+ggplot(analysis_df, aes(x=team_sd_mean_swing_length, y=team_xwOBA)) +
+  geom_point() +
+  labs(
+    title="Team Swing Length Diversity vs. Team xwOBA",
+    x="Team SD of Mean Swing Length",
+    y="Team xwOBA"
+  )+
+  theme_pub()+
+  geom_smooth(method="lm", se=TRUE)
+```
+
+```{r}
+lm_xwoba <- lm(team_xwOBA ~ team_sd_mean_swing_length, data=analysis_df)
+summary(lm_xwoba)
+```
+
+Again, our Adjusted R-Squared is negative, and the p-value of the team-level swing length diversity is 0.367. This suggests that there is no significant relationship between team swing length diversity and team xwOBA.
+
+In conclusion, we have found that there is no significant relationship between team swing length diversity and team wOBA or xwOBA. This suggests that having a variety of average swing length characteristics across players on the roster does not help or hurt scoring.
+
+It is worth noting that our xwOBA data seems to point towards stronger relationships than our wOBA data. In theory, xwOBA is a more trustworthy measure of offensive production, because it looks to eliminate the noise of defense and luck. Sometimes including both together—or creating a combined 2D measure—can reveal patterns not evident in either metric separately.
+
+Perhaps the simplest approach is to include both predictors in the same linear model as a multiple regression model.
+
+### Multivariate Approach of Swing "Style"
+
+#### Multiple Regression Model
+
+If `team_sd_mean_swing_length` was “useless” by itself, it could still contribute additional explanatory power in the presence of `team_sd_mean_bat_speed`. For example, maybe a team with both high bat‐speed diversity and high swing‐length diversity has synergy (or a deficiency).
+
+```{r}
+# Using wOBA
+mod_multi <- lm(team_wOBA ~ team_sd_mean_bat_speed + team_sd_mean_swing_length,
+                data = analysis_df)
+summary(mod_multi)
+# Using xWOBA
+mod_multi <- lm(team_xwOBA ~ team_sd_mean_bat_speed + team_sd_mean_swing_length,
+                data = analysis_df)
+summary(mod_multi)
+```
+
+The Adjusted R-Squared for both models are negative, suggesting that while team-level bat speed variation may help explain between-team variation in xWOBA, a combined model with swing length is not providing any explanation for the variation in xWOBA or wOBA. In both models, the p-values for both predictors are also insignificant at the 0.05 level.
+
+It is worth noting that other models with interaction and transformed predictors were considered, though nothing yielded a realistic and suitable result.
+
+Given that all of this data analysis was done on 30 data points (30 teams), we would like to consider a team's wOBA and xWOBA for each game.
+
+Takeaway #1: Having a variety of swing speeds on a roster could correlate with expected scoring statistics for a team over a season, but a variety of swing lengths does not.
+
+### Question IB: Within a game, does consistency of a team's swings help or hurt scoring?
+
+In this model, we can incorporate situational or day‐to‐day changes in the team’s lineup (maybe a star was resting, or they traded for a new hitter mid‐season). We will want to compute each team’s in‐game diversity of swing speed and swing length weighted by plate appearances, then comparing that to the team’s in‐game wOBA and xwOBA.
+
+First, we group by (game_pk, batter_team, batter) to compute the mean and median for each player in that game. We also count how many plate appearances that batter had in that game.
+
+```{r}
+pitches = read.csv("statcast_pitch_swing_data_20240402_20241030_with_arm_angle.csv")
+
+pitches <- pitches %>%
+  mutate(
+    PA_id = paste(game_pk, at_bat_number, sep="_"),
+    batter_team = ifelse(inning_topbot == "Bot", home_team, away_team)
+  )
+
+player_game_allPA <- pitches %>%
+  group_by(game_pk, batter, batter_team) %>%
+  summarise(
+    total_pa_game = n_distinct(PA_id),    # all PAs in that game for that batter
+    .groups = "drop"
+  )
+
+# Subset to actual swings
+batter_game_swings <- pitches %>%
+  filter(!is.na(bat_speed), !is.na(swing_length)) %>%
+  group_by(game_pk, batter, batter_team) %>%
+  summarise(
+    # mean & median for the swings that occurred
+    game_median_bat_speed    = median(bat_speed, na.rm=TRUE),
+    game_median_swing_length = median(swing_length, na.rm=TRUE),
+    .groups="drop"
+  )
+```
+
+Finally, we do a left_join so that every (game, batter, team) from player_game_allPA is preserved—even if the player never swung:
+
+```{r}
+batter_game_stats <- player_game_allPA %>%
+  left_join(batter_game_swings,
+            by = c("game_pk", "batter", "batter_team"))
+```
+
+Some batters (especially if they only had one PA) might have 0 swings and thus NA data for the swing columns. That is okay, as they will not effect our weighted standard deviations.
+
+Now, let's get our team-level game-by-game diversity of swing speed and swing length. We will use the same weighted standard deviation formula as before, but this time we will use the game_mean_bat_speed and game_mean_swing_length columns.
+
+```{r}
+team_game_diversity <- batter_game_stats %>%
+  group_by(game_pk, batter_team) %>%
+  summarise(
+    # Weighted SD of each player's mean (bat_speed)
+    game_sd_mean_bat_speed = weighted_sd(game_mean_bat_speed, total_pa_game),
+    # Weighted SD of each player's median (bat_speed)
+    game_sd_median_bat_speed = weighted_sd(game_median_bat_speed, total_pa_game),
+    
+    # Weighted SD of each player's mean (swing_length)
+    game_sd_mean_swing_length = weighted_sd(game_mean_swing_length, total_pa_game),
+    # Weighted SD of each player's median (swing_length)
+    game_sd_median_swing_length = weighted_sd(game_median_swing_length, total_pa_game),
+    
+    .groups = "drop"
+  )
+```
+
+Now each row in team_game_diversity is a single (game_pk, batter_team) with four different “diversity” metrics (two based on mean, two based on median).
+
+Next, we will compute game-level xWOBA and wOBA for each team. We will use the same formula as before, but this time we will use the `woba_value` and `woba_denom` columns in `pitches` to calculate wOBA for each plate appearance. We will then calculate the average wOBA for each team.
+
+```{r}
+game_woba <- final_pitches_clean %>%
+  group_by(game_pk, batter_team) %>%
+  summarise(
+    total_woba_val   = sum(woba_value, na.rm=TRUE),
+    total_woba_denom = sum(woba_denom, na.rm=TRUE),
+    game_wOBA = ifelse(total_woba_denom == 0, NA,
+                       total_woba_val / total_woba_denom),
+    .groups="drop"
+  ) %>%
+  select(game_pk, batter_team, game_wOBA)
+
+game_xwoba <- final_pitches_xwoba %>%
+  group_by(game_pk, batter_team) %>%
+  summarise(
+    total_xwoba_value   = sum(xWOBA_value, na.rm=TRUE),
+    total_xwoba_denom = sum(xWOBA_denom, na.rm=TRUE),
+    game_xwOBA = ifelse(total_xwoba_denom == 0, NA,
+                        total_xwoba_value / total_xwoba_denom),
+    .groups="drop"
+  ) %>%
+  select(game_pk, batter_team, game_xwOBA)
+```
+
+Now, combine into an analysis dataframe:
+
+```{r}
+analysis_game_df <- team_game_diversity %>%
+  left_join(game_woba, by=c("game_pk", "batter_team"))
+
+analysis_game_df <- analysis_game_df %>%
+  left_join(game_xwoba, by=c("game_pk","batter_team"))
+```
+
+There are 38 rows where our swing data resulted in means of exactly 0 which doesn't make sense for our data. We will remove these rows.
+
+```{r}
+analysis_game_df <- analysis_game_df %>%
+  filter(game_sd_mean_bat_speed != 0, game_sd_mean_swing_length != 0)
+```
+
+Let's make our models for swing length:
+
+```{r}
+# Mean-based statistics
+mean_woba_swing_length_model <- lm(game_wOBA ~ game_sd_mean_swing_length,
+                    data=analysis_game_df)
+summary(mean_woba_swing_length_model)
+
+mean_xwoba_swing_length_model <- lm(game_xwOBA ~ game_sd_mean_swing_length,
+                    data=analysis_game_df)
+summary(mean_xwoba_swing_length_model)
+
+# Median-based statistics
+median_woba_swing_length_model <- lm(game_wOBA ~ game_sd_median_swing_length,
+                    data=analysis_game_df)
+summary(median_woba_swing_length_model)
+
+median_xwoba_swing_length_model <- lm(game_xwOBA ~ game_sd_median_swing_length,
+                    data=analysis_game_df)
+summary(median_xwoba_swing_length_model)
+```
+
+We tried out both mean and median-based models to ensure that outliers in the data were not influencing individual player's swing data. However, the mean-based and median-based models are showing similar results. Thus, we are going to graph just median-based results, as they are much more signficiant. These four models are all interesting though, with significant p-values for all coefficients of team swing length diversity, and positive Adjusted R-Squared values, even if incredibly small, for all models.
+
+The coefficients for team swing length diversity are all negative, suggesting that on a game-by-game basis, a more consistent swing length is correlated with better offensive production. The p-values are all significant at the 0.05 level, suggesting that there is a significant relationship between team swing length diversity and team wOBA and xwOBA. The Adjusted R-Squared values are all positive, suggesting that the models explain some variance in team wOBA and xwOBA.
+
+This finding is interesting, as it could point to a number of things: - Consistent team-wide swing length approaches might be best for scoring - Our team-by-team data might simply have not had enough sample size to find significant correlations
+
+One possible explanation: The teams with the best scouting and analytics can prepare their players similarly for a particular game, allowing them to capitalize on the opponents' weaknesses or particular ballpark-related advantages.
+
+Let's make our models for bat speed:
+
+```{r}
+# Mean-based statistics
+mean_woba_bat_speed_model <- lm(game_wOBA ~ game_sd_mean_bat_speed,
+                    data=analysis_game_df)
+summary(mean_woba_bat_speed_model)
+
+mean_xwoba_bat_speed_model <- lm(game_xwOBA ~ game_sd_mean_bat_speed,
+                    data=analysis_game_df)
+summary(mean_xwoba_bat_speed_model)
+
+# Median-based statistics
+median_woba_bat_speed_model <- lm(game_wOBA ~ game_sd_median_bat_speed,
+                    data=analysis_game_df)
+summary(median_woba_bat_speed_model)
+
+median_xwoba_bat_speed_model <- lm(game_xwOBA ~ game_sd_median_bat_speed,
+                    data=analysis_game_df)
+summary(median_xwoba_bat_speed_model)
+```
+
+In all models except 1, we got both a negative Adjusted R-Squared and an insignifcant sign of the coefficient. In our model of game-level team bat speed diversity with wOBA, we got a positive Adjusted R-Squared, but the p-value of the coefficient is insignificant at the 0.05 level, and it does not line up with the model using xWOBA, and thus, I will ignore it as likely due to random chance. This suggests that on a game-by-game basis, consistency in a team's bat speed does not correlate positively or negatively with increased scoring.
+
+This inversion from our potential correlations in team-level bat speed diversity and team xwOBA is interesting.
+
+One possible explanation: Throughout a season, a team that has a variety of bat speeds can more easily adapt to the many pitchers they face. In one particular game, a team's variety of bat speeds does not prove useful when they may only face two or three pitchers, provided that the starter pitches for a large portion of the game.
+
+Let's graph these scenarios, using the median variation values and xWOBA:
+
+```{r}
+ggplot(analysis_game_df, aes(x=game_sd_median_swing_length, y=game_xwOBA)) +
+  geom_point() +
+  labs(
+    title="Team Swing Length Diversity vs. Team xwOBA",
+    x="Game SD of Median Swing Length",
+    y="Game xwOBA"
+  )+
+  theme_pub()+
+  geom_smooth(method="lm", se=TRUE)
+
+ggplot(analysis_game_df, aes(x=game_sd_median_bat_speed, y=game_xwOBA)) +
+  geom_point() +
+  labs(
+    title="Team Swing Speed Diversity vs. Team xwOBA",
+    x="Game SD of Median Bat Speed",
+    y="Game xwOBA"
+  )+
+  theme_pub()+
+  geom_smooth(method="lm", se=TRUE)
+```
+
+Takeaway #2: On a game-by-game basis, a team's swing length consistency is correlated with better offensive production, while a team's bat speed consistency is not.
+
+Thinking about Takeaways 1 and 2 together, it is possible that a team's swing length consistency in a particular game points to the idea that they have prepared for a particular set of pitchers well and are able to achieve similar swing lengths to best capitalize on the attributes of the opposing pitchers or of the ballpark. However, over an entire season, it could be advantageous to have a variety of swing speeds on a roster to be able to attack the wide variety of pitchers faced, while optimal swing lengths average out over a long season and many pitchers. It is possible that swing lengths are easier to fluctuate on a per-game basis, but swing speeds are more difficult to change, thus a variety is needed on a roster.
+
+#### Multivariate Model
+
+Let's also try one multivariate model to see if we can find a relationship between swing style consistency and xwOBA.
+
+```{r}
+mod_multi <- lm(game_xwOBA ~ game_sd_median_bat_speed + game_sd_median_swing_length,
+                data = analysis_game_df)
+summary(mod_multi)
+```
+
+In this model, both bat speed and swing length are significant at the 0.05 level, and the Adjusted R-Squared is positive. This suggests that there is a significant relationship between team swing length and bat speed consistency and team xwOBA on a game-by-game basis.
+
+This suggests that, holding swing length diversity constant, having a range of bat speeds within the lineup may help on a game-by-game basis. It could allow the team to adapt to differing pitch velocities and styles from the opposing pitchers.
+
+Meanwhile, holding bat speed diversity constant, a more consistent (less diverse) swing length appears beneficial. If everyone’s length is dialed in for that day’s pitcher(s), the team might more efficiently square up pitches or stay in the optimal “contact window.”
+
+On a single‐game basis, these results indicate that a consistent swing length is linked to better offensive output, while some diversity in bat speed can be helpful. This aligns with the idea that hitters can unify their swing lengths to match that day’s pitchers and still bring different swing speeds to handle velocity changes or relief pitchers.
+
+One possible explanation: For a particular game, a team's swing length helps them better adjust for ballpark dimensions or aspects of the weather/environment, but a team's bat speed diversity helps them adjust to the variety of pitchers they face.
+
+### Question II: Does a player's swing consistency help or hurt scoring?
+
+Now, we'd like to ask whether on a player-by-player basis, does a player's swing consistency during a season correlate with success at the plate? We will use the same weighted standard deviation formula as before, but this time we will use the player's mean swing length and bat speed for the season. Asked another way: Does having a consistent swing over a season correlate with a particular player generating offense.
+
+```{r}
+pitches <- pitches %>%
+  mutate(
+    PA_id = paste(game_pk, at_bat_number, sep="_"),
+    batter_team = ifelse(inning_topbot == "Bot", home_team, away_team)
+  )
+
+player_swing_consistency <- pitches %>%
+  filter(!is.na(swing_length), !is.na(bat_speed)) %>%
+  group_by(batter) %>%
+  summarise(
+    # Season-long means
+    mean_swing_length = mean(swing_length, na.rm=TRUE),
+    mean_bat_speed    = mean(bat_speed, na.rm=TRUE),
+    # Season-long standard deviations
+    sd_swing_length = sd(swing_length, na.rm=TRUE),
+    sd_bat_speed    = sd(bat_speed, na.rm=TRUE),
+    .groups = "drop"
+  )
+
+## Take out players with NA standard deviation
+player_swing_consistency <- player_swing_consistency %>%
+  filter(!is.na(sd_swing_length), !is.na(sd_bat_speed))
+```
+
+This gives us one row per batter, capturing that player’s overall pitch-to-pitch variation in swing metrics across the entire season.
+
+Now, let's calculate xWOBA for all players over the season.
+
+```{r}
+# We'll define "final pitch" as the last pitch_number in that (game_pk, at_bat_number)
+final_pitches <- pitches %>%
+  group_by(game_pk, at_bat_number) %>%
+  slice_max(order_by = pitch_number, n = 1) %>%
+  ungroup()
+
+final_pitches_xwoba <- final_pitches %>%
+  filter(!is.na(estimated_woba_using_speedangle)) %>%
+  mutate(
+    xWOBA_value = estimated_woba_using_speedangle,
+    xWOBA_denom = 1
+  )
+
+player_xwoba <- final_pitches_xwoba %>%
+  group_by(batter) %>%
+  summarise(
+    total_xwoba_value = sum(xWOBA_value, na.rm=TRUE),
+    total_xwoba_denom = sum(xWOBA_denom, na.rm=TRUE),
+    player_xwOBA = ifelse(total_xwoba_denom == 0, NA,
+                          total_xwoba_value / total_xwoba_denom),
+    .groups="drop"
+  ) %>%
+  select(batter, player_xwOBA)
+```
+
+Now, combine into an analysis dataframe:
+
+```{r}
+player_analysis_df <- player_swing_consistency %>%
+  left_join(player_xwoba, by="batter")
+```
+
+Let's graph these scenarios, using the median variation values and xWOBA:
+
+```{r}
+ggplot(player_analysis_df, aes(x=sd_swing_length, y=player_xwOBA)) +
+  geom_point() +
+  labs(
+    title="Player Swing Length Consistency vs. Player xwOBA",
+    x="Player SD of Swing Length",
+    y="Player xwOBA"
+  )+
+  theme_pub()+
+  geom_smooth(method="lm", se=TRUE)
+
+ggplot(player_analysis_df, aes(x=sd_bat_speed, y=player_xwOBA)) +
+  geom_point() +
+  labs(
+    title="Player Bat Speed Consistency vs. Player xwOBA",
+    x="Player SD of Bat Speed",
+    y="Player xwOBA"
+  )+
+  theme_pub()+
+  geom_smooth(method="lm", se=TRUE)
+
+```
+
+Let's also create linear models to see if there is a significant relationship between player swing consistency and player xwOBA.
+
+```{r}
+model_sd_swing_length <- lm(player_xwOBA ~ mean_swing_length + sd_swing_length, data=player_analysis_df)
+summary(model_sd_swing_length)
+
+model_sd_bat_speed <- lm(player_xwOBA ~ mean_bat_speed + sd_bat_speed, data=player_analysis_df)
+summary(model_sd_bat_speed)
+```
+
+In both models, the Adjusted R-Squared is positive, and the p-value of the coefficient is significant at the 0.05 level. This suggests that there is a significant relationship between player swing consistency and player xwOBA for both swing length and bat speed. The coefficients are negative, suggesting that a more consistent swing length and bat speed is correlated with better offensive production. This likely points to the idea that the best hitters have found optimal swing lengths and bat speeds, and while they will likely slightly deviate from them to better match the pitcher, they have less reason to adjust over the entire season. Worse hitters need to continuously adjust their swings over the season in searching for their best swing type.
+
+#### Multivariate Model
+
+Let's also try one multivariate model to see if we can find a relationship between player swing consistency and xwOBA.
+
+```{r}
+mod_multi <- lm(player_xwOBA ~ mean_swing_length + mean_bat_speed + sd_swing_length + sd_bat_speed,
+                data = player_analysis_df)
+summary(mod_multi)
+
+library(car)
+vif(mod_multi)
+
+## Show collinearity between predictors
+cor(player_analysis_df$sd_swing_length, player_analysis_df$sd_bat_speed)
+cor(player_analysis_df$mean_swing_length, player_analysis_df$mean_bat_speed)
+cor(player_analysis_df$mean_swing_length, player_analysis_df$sd_swing_length)
+cor(player_analysis_df$mean_bat_speed, player_analysis_df$sd_bat_speed)
+
+```
+
+Although our VIF values are all less than 5, suggesting that multicollinearity is likely not a problem and just a result of using real imperfect data, we can try to create a "mechanical variability" combined component using Principal Components Analysis to combine the two predictors into one.
+
+```{r}
+# Step 1: Standardize variables
+player_analysis_df <- player_analysis_df %>%
+  mutate(
+    sd_swing_length_scaled = scale(sd_swing_length),
+    sd_bat_speed_scaled = scale(sd_bat_speed)
+  )
+
+# Step 2: Perform PCA
+pca_model <- prcomp(player_analysis_df[, c("sd_swing_length_scaled", "sd_bat_speed_scaled")],
+                    center = TRUE, scale. = TRUE)
+
+# Step 3: Add first principal component to the dataset
+player_analysis_df <- player_analysis_df %>%
+  mutate(mechanical_variability = pca_model$x[, 1])
+
+# Check PCA results
+summary(pca_model)
+```
+
+```{r}
+model <- lm(player_xwOBA ~ mean_swing_length + mean_bat_speed + mechanical_variability,
+            data = player_analysis_df)
+summary(model)
+
+vif(model)
+```
+
+Our VIFs are again under 5, signalling that this is a good model.
+
+Takeaway #3: On a player-by-player basis, a player's swing consistency is correlated with better offensive production. This is likely because the best players have found their optimal swing lengths and bat speeds, and while they will slightly deviate from them to better match the pitcher, they have less reason to adjust over the entire season. Worse hitters need to continuously adjust their swings over the season in searching for their best swing type.
