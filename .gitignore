@@ -1,2 +1,2 @@
 /.quarto/
-data/statcast_data.csv
+data/*.rds
