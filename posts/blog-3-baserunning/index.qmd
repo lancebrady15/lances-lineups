@@ -8,15 +8,15 @@ editor: visual
 image: blog3.jpg
 ---
 
-## Takeaways
+# Takeaways
 
-1.  A
+1.  
 
 ## Introduction to Baserunning
 
 As Statcast expands the data they are able to collect and parse through, one big innovation is the creation of "Baserunning Runs," which aims to estimate the number of runs a player is creating through baserunning alone. Statcast defines it as follows:
 
-"A Statcast metric designed to express the overall value of a baserunner, measured in runs created (or lost) via stealing bases and taking extra bases on the basepaths. Each steal opportunity is assigned a probability of being successful or not, based on the pitcher and catcher the basestealer is running against. Each successful or failed steal attempt is assigned a run value, with a stolen base or advance via a balk worth +0.2 runs for the baserunner and a caught stealing or pickoff worth -0.45 runs. For non-steal baserunning plays, an estimated success probability is generated for each opportunity using inputs that include runner speed, outfielder throwing arm, runner position on the basepaths and outfielder distance from both the ball and the bases. That can be translated to a run value based on whether the runner successfully takes the extra base, is thrown out or does not attempt to advance (holds)."
+"A Statcast metric designed to express the overall value of a baserunner, measured in runs created (or lost) via stealing bases and taking extra bases on the basepaths. Each steal opportunity is assigned a probability of being successful or not, based on the pitcher and catcher the basestealer is running against. Each successful or failed steal attempt is assigned a run value, with a stolen base or advance via a balk worth +0.2 runs for the baserunner and a caught stealing or pickoff worth -0.45 runs. For non-steal baserunning plays, an estimated success probability is generated for each opportunity using inputs that include runner speed, outfielder throwing arm, runner position on the basepaths and outfielder distance from both the ball and the bases. That can be translated to a run value based on whether the runner successfully takes the extra base, is thrown out or does not attempt to advance (holds)." (MLB, 2025)
 
 A player's speed is only as useful as they make it, so lineup construction analysis, which often references the need for speed at the top and bottom of the order, would benefit from using this advanced data. Managers no longer have to use sprint speed to proxy a player's value on the basepaths, they can use a player's true baserunning value.
 
@@ -26,13 +26,13 @@ It is worth noting that the MLB opted for bigger bases in 2023 to increase actio
 
 This article aims to answer a couple of questions about the role baserunning has in lineup construction. We'd like to answer the following research questions, which focus on distinct parts of baserunner effects within the game:
 
-1.  Does having a perceived “speed threat” on base lead to measurable changes in the pitcher’s approach (e.g., pitch selection, pitch location, pickoff frequency), and can that impact subsequent hitters’ performances?
+1.  Does having a perceived (and measured) speed threat on base lead to measurable changes in pitch selection or velocity, and does that in turn correlate with better offensive outcomes?
 2.  What is the optimal positioning of baserunning value within a lineup? Is it better to cluster speedy players consecutively (for multiple stolen bases or first-to-third attempts in an inning) or to spread them out to maximize the impact in different segments of the lineup?
 3.  Since 2023, how well have managers optimized their team's speed in their lineups?
 
 ## Setup
 
-To answer Question #1, we will need two datasets: Statcast pitch-by-pitch data for all of 2023/2024 and
+To answer Question #1, we will need two datasets: Statcast pitch-by-pitch data for all of 2023/2024 and Statcast Baserunning data for the same seasons.
 
 ## Methods
 
@@ -50,76 +50,222 @@ library(pubtheme)
 ```
 
 ```{r}
-statcast_data = read.csv("data/statcast_data.csv")
-baserunning_data = read.csv("data/baserunning_data.csv")
+pa_data_final = readRDS("data/pa_data_final.rds")
+baserunning_data = readRDS("data/baserunning_data.rds")
+statcast_data = readRDS("data/statcast_all_years_rds")
+
+pa_data_final = pa_data_final %>%
+  filter(game_year != 2015)
 ```
 
-Next, we want to create a "speed value" for each player in our base_running data. We will use `runner_runs_tot` from `baserunning_data` to create a new column, `speed_value`, which will be the number of runs a player generated through baserunning divided by the number of opportunities they had to generate those runs. `runner_runs_tot` is the number of runs a player generated through baserunning.
+Our baserunning dataset, `baserunning_data` contains 1806 rows, each representing a player/year combination, each listed with baserunning contributions broken down by stolen bases (SB) and extra bases taken (XB).
 
-DO ANALYSIS OF NUMBER OF OPPORTUNITIES FOR EACH PLAYER. This is more representative of their true baserunning threat than just the number of total baserunning runs they generated. 
+We will want to do our analysis taking into account how many opportunities each player has to generate baserunning runs. This is more representative of their true baserunning threat than just the number of total baserunning runs they generated.
 
-Now, let's create a lookup table for each player with their speed value.
-
-```{r}
-baserunning_lookup <- setNames(baserunning_data$runner_runs_tot,
-                               baserunning_data$player_id)
-```
-
-Next, we will create a custom function to sum the baserunning value on base for each pitch. This function will take in the base occupancy and the lookup table we just created and return the sum of the baserunning value for each player on base.
+In this code, we first create a lookup table of `running_opportunities` at the player–year level by collecting all the baserunner IDs from `on_1b`, `on_2b`, and `on_3b` in `pa_data_final` and grouping by both `runner_id` and `game_year`. Next, we merge these counts with `baserunning_data`—after converting its `start_year` column into a `game_year`—to compute a per-player average value (`runner_average_value`), defined as `runner_runs_tot` divided by `running_opportunities` for each player-year. We then merge these calculated averages back into `pa_data_final` by joining on each of the on-base columns (`on_1b`, `on_2b`, and `on_3b`) along with `game_year`, thereby creating new columns `first_base_runner_value`, `second_base_runner_value`, and `third_base_runner_value` (with any missing values set to 0). 
+Finally, we construct a `running_opportunities` column that counts the occupied bases in each plate appearance and compute a new metric, `pa_runner_average_value`, by dividing the sum of the individual base runner values by the number of opportunities. This metric reflects the average baserunning value per opportunity for each plate appearance, accounting for player performance on a player–year basis.
 
 ```{r}
-# Custom function to calculate total speed on base, ensuring all runners have data
-get_total_speed_on_base <- function(on1b, on2b, on3b, baserunning_lookup) {
-  
-  # Convert IDs to character to match lookup names
-  runner_ids <- as.character(c(on1b, on2b, on3b))
-  
-  # Check if all runners are in the lookup
-  if (all(!is.na(runner_ids)) && all(runner_ids %in% names(baserunning_lookup))) {
-    
-    # Sum up `runner_runs_tot` for all runners on base
-    total_speed <- sum(baserunning_lookup[runner_ids], na.rm = TRUE)
-    return(total_speed)
-    
-  } else {
-    return(NA)  # Mark as NA if any runner is missing in baserunning_lookup
-  }
-}
-
-# Apply function to calculate total speed on base for each pitch, filtering valid cases
-statcast_data <- statcast_data %>%
-  rowwise() %>%
-  mutate(
-    total_speed_on_base = get_total_speed_on_base(
-      on_1b, on_2b, on_3b, baserunning_lookup
-    )
+## Create a table of running opportunities per player-year.
+## For every plate appearance in pa_data_final, collect the baserunner IDs
+## from `on_1b`, `on_2b`, and `on_3b`, and group by both `game_year` and the runner ID.
+baserunner_opportunities <- pa_data_final %>%
+  select(game_pk, at_bat_number, game_year, on_1b, on_2b, on_3b) %>%
+  pivot_longer(
+    cols = c(on_1b, on_2b, on_3b),
+    names_to = "base",
+    values_to = "runner_id"
   ) %>%
-  ungroup() %>%
-  filter(!is.na(total_speed_on_base))
+  filter(!is.na(runner_id)) %>%
+  group_by(game_year, runner_id) %>%
+  summarize(running_opportunities = n(), .groups = "drop")
 
-# Check summary
-summary(statcast_data$total_speed_on_base)
+## Create a lookup table for runner values based on baserunning_data.
+## We assume baserunning_data contains columns: `player_id` and `runner_runs_tot`.
+## We convert `player_id` to character and also set `game_year` equal to `start_year`.
+baserunning_data <- baserunning_data %>%
+  mutate(
+    player_id = as.character(player_id),
+    game_year = as.character(start_year)
+  )
+
+baserunner_opportunities = baserunner_opportunities %>%
+  mutate(
+    game_year = as.character(game_year),
+    runner_id = as.character(runner_id)
+  )
+
+baserunner_values <- baserunning_data %>%
+  select(game_year, player_id, runner_runs_tot) %>%
+  left_join(baserunner_opportunities, by = c("game_year", "player_id" = "runner_id")) %>%
+  filter(running_opportunities >= 30) %>%
+  mutate(
+    runner_average_value = ifelse(running_opportunities > 0,
+                                  runner_runs_tot / running_opportunities,
+                                  0)
+  )
+
+## Join runner_average_value back to pa_data_final for each base.
+## First, ensure the on-base columns and game_year in pa_data_final are characters.
+pa_data_final <- pa_data_final %>%
+  mutate(
+    on_1b = as.character(on_1b),
+    on_2b = as.character(on_2b),
+    on_3b = as.character(on_3b),
+    game_year = as.character(game_year)
+  )
+
+# Join for 1B:
+pa_data_final <- pa_data_final %>%
+  left_join(
+    baserunner_values %>% select(game_year, player_id, runner_average_value),
+    by = c("game_year", "on_1b" = "player_id")
+  ) %>%
+  rename(first_base_runner_value = runner_average_value)
+
+# Join for 2B:
+pa_data_final <- pa_data_final %>%
+  left_join(
+    baserunner_values %>% select(game_year, player_id, runner_average_value),
+    by = c("game_year", "on_2b" = "player_id")
+  ) %>%
+  rename(second_base_runner_value = runner_average_value)
+
+# Join for 3B:
+pa_data_final <- pa_data_final %>%
+  left_join(
+    baserunner_values %>% select(game_year, player_id, runner_average_value),
+    by = c("game_year", "on_3b" = "player_id")
+  ) %>%
+  rename(third_base_runner_value = runner_average_value)
+
+## Replace NAs (if a base is empty) with 0 runner value.
+pa_data_final <- pa_data_final %>%
+  mutate(
+    first_base_runner_value   = ifelse(is.na(on_1b), 0, first_base_runner_value),
+    second_base_runner_value   = ifelse(is.na(on_2b), 0, second_base_runner_value),
+    third_base_runner_value = ifelse(is.na(on_3b), 0, third_base_runner_value)
+  )
+
+## Create a "running_opportunities" column in pa_data_final.
+## This counts how many bases are occupied (i.e. not NA) for that plate appearance.
+pa_data_final <- pa_data_final %>%
+  mutate(
+    running_opportunities = ifelse(!is.na(on_1b), 1, 0) +
+                              ifelse(!is.na(on_2b), 1, 0) +
+                              ifelse(!is.na(on_3b), 1, 0)
+  )
+
+## Compute the plate appearance's average runner value.
+pa_data_final <- pa_data_final %>%
+  mutate(
+    pa_runner_total_value   = first_base_runner_value + 
+      second_base_runner_value + third_base_runner_value,
+    pa_runner_average_value = ifelse(running_opportunities > 0,
+                                     pa_runner_total_value / running_opportunities,
+                                     0)
+  )
+```
+
+```{r}
 
 ```
+
+
 
 ## Model 1: Pitcher Behavior
+To do models on pitcher behavior, we will need a new statcast dataframe that incorporates the baserunning data. We will create a new dataframe, `statcast_data_baserunning`, that contains the same columns as `statcast_data` but with the addition of the `pa_runner_average_value` column.
+
+```{r}
+## Perform a left_join on (game_pk, at_bat_number)
+statcast_data_baserunning <- statcast_all_years %>%
+  left_join(
+    pa_data_final %>%
+      select(game_pk, at_bat_number,
+             # Choose whichever columns you need from pa_data_final:
+             pa_runner_average_value,
+             first_base_runner_value,
+             second_base_runner_value,
+             third_base_runner_value,
+             pa_runner_total_value,
+             run_diff, baserunner_state 
+      ),
+    by = c("game_pk", "at_bat_number")
+  )
+```
+
+
 ### Pitch Velocity with Speed on Base
+
+Our first model will be a mixed-effects model studying how fast pitchers throw with different on-base variations.
+
 ```{r}
 model_vel <- lmer(
-  release_speed ~ total_speed_on_base + factor(balls) + factor(strikes) + (1 + total_speed_on_base | pitcher),
-  data = statcast_data
+  release_speed ~ first_base_runner_value + second_base_runner_value + third_base_runner_value + run_diff + outs_when_up.x + baserunner_state + factor(balls) + factor(strikes) +
+    (1 | pitcher.x),
+  data = statcast_data_baserunning
 )
-
 summary(model_vel)
+
 ```
+
+### Pitch Location with Speed on Base
+
+Our next model will be a mixed-effects model studying how pitchers locate with different on-base variations.
 
 ```{r}
+model_location <- lmer(
+  plate_z ~ first_base_runner_value + second_base_runner_value + third_base_runner_value + run_diff + outs_when_up + baserunner_state + factor(balls) + factor(strikes) +
+    (1 | pitcher),
+  data = pitch_data_joined
+)
+summary(statcast_data_baserunning)
 
 ```
 
-
 ### Pitch Selection with Speed on Base
-## Model #1: 
+If you want to see whether pitchers throw more fastballs with speed on base, we can define a binary:
+
+```{r}
+statcast_data_baserunning <- statcast_data_baserunning %>%
+  mutate(
+    is_fastball = if_else(
+      pitch_type %in% c("FF","FA","FT","SI","FC"), 1, 0
+    )
+  )
+)
+
+# Fit logistic mixed model
+model_pitch_select <- glmer(
+  is_fastball ~ first_base_runner_value + second_base_runner_value + third_base_runner_value + run_diff + outs_when_up + baserunner_state + factor(balls) + factor(strikes) +
+    (1 | pitcher), 
+  data = statcast_data_baserunning,
+  family = binomial(link = "logit")
+)
+summary(model_pitch_select)
+```
+
+
+## Model #2: Offensive Perfornance with Speed on Base (EXPAND ON THESE)
+
+Next, we need to get PA-level data to analyze the impact of speed on base on offensive performance. Now that we have the speed on base for each pitch, we can aggregate this to the PA level to get the total speed on base for each PA. 
+
+```{r}
+m_speed = lmer(pa_xwOBA ~ batter_xwOBA + pa_runner_average_value + (1 | pitcher),
+             data = pa_data_final)
+
+summary(m_speed)
+
+m_speed <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA + 
+    batter_handedness + potential_next_batter_handedness +
+    outs_when_up + run_diff + baserunner_state * first_base_runner_value + baserunner_state * second_base_runner_value + baserunner_state * third_base_runner_value +
+    (1 | pitcher),
+  data = pa_data_final
+)
+
+summary(m_speed)
+```
 
 ## Visualizations
 

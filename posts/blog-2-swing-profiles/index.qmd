@@ -8,17 +8,27 @@ editor: visual
 image: blog2.jpg
 ---
 
-## Takeaways:
+# Takeaways:
 
 1.  Having a variety of swing speeds on a roster may correlate with expected scoring statistics for a team over a season, but a variety of swing lengths does not.
 
-2.   On a game-by-game basis, a team's swing length consistency is correlated with better offensive production, while a team's bat speed consistency is not.
+2.  On a game-by-game basis, a team's swing length consistency is correlated with better offensive production, while a team's bat speed consistency is not.
 
 3.  On a player-by-player basis, a player's swing consistency is correlated with better offensive production. This is likely because the best players have found their optimal swing lengths and bat speeds, and while they will slightly deviate from them to better match the pitcher, they have less reason to adjust over the entire season. Worse hitters need to continuously adjust their swings over the season in searching for their best swing type.
 
 ## Introduction to Swing Profile Data
 
-Recent advances in Statcast technology have allowed for the direct measurement of bat speed and swing length on pitches where the batter swings. These new metrics open the door to exploring questions that were previously left to inference, scouting reports, or assumptions about mechanics. Specifically, we have become interested in the idea of swing consistency: How much do a batter’s bat speed and swing length deviate from pitch to pitch or from game to game? How do differing swing profiles on a roster correlate with run generation during a game?
+Recent advances in Statcast technology have allowed for the direct measurement of bat speed and swing length on pitches where the batter swings. These new metrics open the door to exploring questions that were previously left to inference, scouting reports, or assumptions about mechanics.
+
+Statcast defines swing length as "The total (sum) distance (in feet) traveled by the barrel of the bat in X/Y/Z space, from the start of bat tracking data (generally around 150 ms), up until impact point." In general, shorter swings–the average swing length is 7.3 feet–result in more contact and less power, just as conventional baseball wisdom would posit.
+
+Swing speed is measured "at the point six inches from the head of the bat, what is popularly called 'the sweet-spot.'" (MLB, 2025)
+
+New research has focused much on the outcomes of different swing types, pointing to the idea that although no combination of swing length and speed is necessarily correct, faster bat speeds allow for a multitude of approaches, while lower bat speeds minimize margin for error (Lambert, 2024). This new data also has allowed sabermetricians to better understand the strengths of specific players. While it is would seem obvious that Giancarlo Stanton has an incredibly long and fast swing in the naked eye test, there is now data to back it up (Passan, 2024).
+
+Recent analyses using MLB's Statcast swing-tracking data have found strong statistical support for the benefits of increased swing speed, linking higher swing speeds to better quality contact without significantly higher strikeout rates (Dudzinski, 2025). While traditional baseball wisdom associates faster swings with more strikeouts, the correlation between swing speed and strikeouts was surprisingly weak. Instead, increased swing speed consistently correlated with higher average exit velocities and improved expected offensive metrics such as expected weighted on-base average (xwOBA) and expected slugging percentage (xSLG). These findings suggest hitters may improve overall performance by prioritizing bat speed, enhancing the margin for error in their swing mechanics (Dudzinski, 2025).
+
+Specifically, we have become interested in the idea of swing consistency: How much do a batter’s bat speed and swing length deviate from pitch to pitch or from game to game? How do differing swing profiles on a roster correlate with run generation during a game?
 
 ## Aim
 
@@ -678,3 +688,17 @@ vif(model)
 Our VIFs are again under 5, signalling that this is a good model.
 
 Takeaway #3: On a player-by-player basis, a player's swing consistency is correlated with better offensive production. This is likely because the best players have found their optimal swing lengths and bat speeds, and while they will slightly deviate from them to better match the pitcher, they have less reason to adjust over the entire season. Worse hitters need to continuously adjust their swings over the season in searching for their best swing type.
+
+## Discussion
+
+## References
+
+Dudzinski, R. (2025, January 30). *The data is in from MLB— swing hard, just in case you hit it*. Medium. [https://medium.com/\@robbiedudz34/the-data-is-in-from-mlb-swing-hard-just-in-case-you-hit-it-220cae1af5ca](https://medium.com/@robbiedudz34/the-data-is-in-from-mlb-swing-hard-just-in-case-you-hit-it-220cae1af5ca)
+
+*Fast-swing rate*. (n.d.). MLB.com. <https://www.mlb.com/glossary/statcast/fast-swing-rate>
+
+Lambert, J. (2024, August 1). *Using MLB bat tracking data to better understand swings*. Driveline Baseball. <https://www.drivelinebaseball.com/2024/07/using-mlb-bat-tracking-data-to-better-understand-swings/?srsltid=AfmBOopwi5JuXS1YWSWq4ny_NNrcHio0S1pASMeH0vXtOY1mZug93TOx>
+
+Passan, J. (2024, May 13). *Passan: The five biggest takeaways from Statcast's swing-tracking data*. ESPN.com. <https://www.espn.com/mlb/story/_/id/40120458/mlb-statcast-bat-tracking-data-giancarlo-stanton-luis-arraez>
+
+*Swing length*. (n.d.). MLB.com. <https://www.mlb.com/glossary/statcast/swing-length>
