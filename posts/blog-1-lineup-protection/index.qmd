@@ -8,14 +8,6 @@ editor: visual
 image: blog1.jpg
 ---
 
-# Takeaways
-
-1.  
-
-2.  
-
-3.  
-
 ## Introduction to Lineup Protection
 
 Batting order optimization is a heavily studied aspect of baseball decision-making, where teams construct lineups to maximize run production. Most studies in this area assume that hitters in the lineup are independent of one another. However, the concept of lineup protection—the idea that a hitter’s performance is influenced by the quality of the hitter after them—remains debated within the sabermetrics community, most often not believed in by it; it has not been supported by previous statistical studies. Although batting order decisions may offer only marginal advantages in expected runs, in an era where every competitive edge counts, even subtle effects like lineup protection deserve closer examination. The theory behind lineup protection is that a hitter with a good hitter behind them will be harder to pitch around because pitchers won't want to face the guy after him either, particularly with more runners on base. Thus, walks would decrease, and that would mean more fastballs, strikes, and pitches over the plate, essentially increasing the probability for productive hitting, specifically extra-base hits (doubles, triples, and homeruns).
