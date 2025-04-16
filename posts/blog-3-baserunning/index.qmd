@@ -6,6 +6,8 @@ categories: [baserunning, lineups, statcast]
 format: html
 editor: visual
 image: blog3.jpg
+execute:
+  eval: false
 ---
 
 # Takeaways
@@ -36,177 +38,27 @@ To answer Question #1, we will need two datasets: Statcast pitch-by-pitch data f
 
 ## Methods
 
-First, we loaded in our libraries and read the data, which contains almost every pitch from the 2023 and 2024 seasons (excluding when poor data was retrieved).
-
-```{r}
-#| echo: false
-#| output: false
-
-library(tidyverse)
-library(car)
-library(lme4)
-library(lmerTest)
-library(pubtheme)
-```
-
-```{r}
-pa_data_final = readRDS("data/pa_data_final.rds")
-baserunning_data = readRDS("data/baserunning_data.rds")
-statcast_data = readRDS("data/statcast_all_years_rds")
-
-pa_data_final = pa_data_final %>%
-  filter(game_year != 2015)
-```
-
-Our baserunning dataset, `baserunning_data` contains 1806 rows, each representing a player/year combination, each listed with baserunning contributions broken down by stolen bases (SB) and extra bases taken (XB).
-
-We will want to do our analysis taking into account how many opportunities each player has to generate baserunning runs. This is more representative of their true baserunning threat than just the number of total baserunning runs they generated.
-
-In this code, we first create a lookup table of `running_opportunities` at the player–year level by collecting all the baserunner IDs from `on_1b`, `on_2b`, and `on_3b` in `pa_data_final` and grouping by both `runner_id` and `game_year`. Next, we merge these counts with `baserunning_data`—after converting its `start_year` column into a `game_year`—to compute a per-player average value (`runner_average_value`), defined as `runner_runs_tot` divided by `running_opportunities` for each player-year. We then merge these calculated averages back into `pa_data_final` by joining on each of the on-base columns (`on_1b`, `on_2b`, and `on_3b`) along with `game_year`, thereby creating new columns `first_base_runner_value`, `second_base_runner_value`, and `third_base_runner_value` (with any missing values set to 0). 
-Finally, we construct a `running_opportunities` column that counts the occupied bases in each plate appearance and compute a new metric, `pa_runner_average_value`, by dividing the sum of the individual base runner values by the number of opportunities. This metric reflects the average baserunning value per opportunity for each plate appearance, accounting for player performance on a player–year basis.
-
-```{r}
-## Create a table of running opportunities per player-year.
-## For every plate appearance in pa_data_final, collect the baserunner IDs
-## from `on_1b`, `on_2b`, and `on_3b`, and group by both `game_year` and the runner ID.
-baserunner_opportunities <- pa_data_final %>%
-  select(game_pk, at_bat_number, game_year, on_1b, on_2b, on_3b) %>%
-  pivot_longer(
-    cols = c(on_1b, on_2b, on_3b),
-    names_to = "base",
-    values_to = "runner_id"
-  ) %>%
-  filter(!is.na(runner_id)) %>%
-  group_by(game_year, runner_id) %>%
-  summarize(running_opportunities = n(), .groups = "drop")
-
-## Create a lookup table for runner values based on baserunning_data.
-## We assume baserunning_data contains columns: `player_id` and `runner_runs_tot`.
-## We convert `player_id` to character and also set `game_year` equal to `start_year`.
-baserunning_data <- baserunning_data %>%
-  mutate(
-    player_id = as.character(player_id),
-    game_year = as.character(start_year)
-  )
-
-baserunner_opportunities = baserunner_opportunities %>%
-  mutate(
-    game_year = as.character(game_year),
-    runner_id = as.character(runner_id)
-  )
-
-baserunner_values <- baserunning_data %>%
-  select(game_year, player_id, runner_runs_tot) %>%
-  left_join(baserunner_opportunities, by = c("game_year", "player_id" = "runner_id")) %>%
-  filter(running_opportunities >= 30) %>%
-  mutate(
-    runner_average_value = ifelse(running_opportunities > 0,
-                                  runner_runs_tot / running_opportunities,
-                                  0)
-  )
-
-## Join runner_average_value back to pa_data_final for each base.
-## First, ensure the on-base columns and game_year in pa_data_final are characters.
-pa_data_final <- pa_data_final %>%
-  mutate(
-    on_1b = as.character(on_1b),
-    on_2b = as.character(on_2b),
-    on_3b = as.character(on_3b),
-    game_year = as.character(game_year)
-  )
-
-# Join for 1B:
-pa_data_final <- pa_data_final %>%
-  left_join(
-    baserunner_values %>% select(game_year, player_id, runner_average_value),
-    by = c("game_year", "on_1b" = "player_id")
-  ) %>%
-  rename(first_base_runner_value = runner_average_value)
-
-# Join for 2B:
-pa_data_final <- pa_data_final %>%
-  left_join(
-    baserunner_values %>% select(game_year, player_id, runner_average_value),
-    by = c("game_year", "on_2b" = "player_id")
-  ) %>%
-  rename(second_base_runner_value = runner_average_value)
-
-# Join for 3B:
-pa_data_final <- pa_data_final %>%
-  left_join(
-    baserunner_values %>% select(game_year, player_id, runner_average_value),
-    by = c("game_year", "on_3b" = "player_id")
-  ) %>%
-  rename(third_base_runner_value = runner_average_value)
-
-## Replace NAs (if a base is empty) with 0 runner value.
-pa_data_final <- pa_data_final %>%
-  mutate(
-    first_base_runner_value   = ifelse(is.na(on_1b), 0, first_base_runner_value),
-    second_base_runner_value   = ifelse(is.na(on_2b), 0, second_base_runner_value),
-    third_base_runner_value = ifelse(is.na(on_3b), 0, third_base_runner_value)
-  )
-
-## Create a "running_opportunities" column in pa_data_final.
-## This counts how many bases are occupied (i.e. not NA) for that plate appearance.
-pa_data_final <- pa_data_final %>%
-  mutate(
-    running_opportunities = ifelse(!is.na(on_1b), 1, 0) +
-                              ifelse(!is.na(on_2b), 1, 0) +
-                              ifelse(!is.na(on_3b), 1, 0)
-  )
-
-## Compute the plate appearance's average runner value.
-pa_data_final <- pa_data_final %>%
-  mutate(
-    pa_runner_total_value   = first_base_runner_value + 
-      second_base_runner_value + third_base_runner_value,
-    pa_runner_average_value = ifelse(running_opportunities > 0,
-                                     pa_runner_total_value / running_opportunities,
-                                     0)
-  )
-```
-
-```{r}
-
-```
+For full methods and model outputs [view the full appendix here](../../appendix/blog3-appendix.qmd).
 
 
-
-## Model 1: Pitcher Behavior
+## Model #1: Pitcher Behavior
 To do models on pitcher behavior, we will need a new statcast dataframe that incorporates the baserunning data. We will create a new dataframe, `statcast_data_baserunning`, that contains the same columns as `statcast_data` but with the addition of the `pa_runner_average_value` column.
-
-```{r}
-## Perform a left_join on (game_pk, at_bat_number)
-statcast_data_baserunning <- statcast_all_years %>%
-  left_join(
-    pa_data_final %>%
-      select(game_pk, at_bat_number,
-             # Choose whichever columns you need from pa_data_final:
-             pa_runner_average_value,
-             first_base_runner_value,
-             second_base_runner_value,
-             third_base_runner_value,
-             pa_runner_total_value,
-             run_diff, baserunner_state 
-      ),
-    by = c("game_pk", "at_bat_number")
-  )
-```
-
 
 ### Pitch Velocity with Speed on Base
 
 Our first model will be a mixed-effects model studying how fast pitchers throw with different on-base variations.
 
 ```{r}
+statcast_data_baserunning = readRDS("data/statcast_data_baserunning.rds")
+```
+
+```{r}
 model_vel <- lmer(
-  release_speed ~ first_base_runner_value + second_base_runner_value + third_base_runner_value + run_diff + outs_when_up.x + baserunner_state + factor(balls) + factor(strikes) +
-    (1 | pitcher.x),
+  release_speed ~ first_base_runner_value + second_base_runner_value + third_base_runner_value + run_diff + outs_when_up + baserunner_state + factor(balls) + factor(strikes) +
+    (1 | pitcher),
   data = statcast_data_baserunning
 )
 summary(model_vel)
-
 ```
 
 ### Pitch Location with Speed on Base
@@ -217,9 +69,9 @@ Our next model will be a mixed-effects model studying how pitchers locate with d
 model_location <- lmer(
   plate_z ~ first_base_runner_value + second_base_runner_value + third_base_runner_value + run_diff + outs_when_up + baserunner_state + factor(balls) + factor(strikes) +
     (1 | pitcher),
-  data = pitch_data_joined
+  data = statcast_data_baserunning
 )
-summary(statcast_data_baserunning)
+summary(model_location)
 
 ```
 
@@ -268,7 +120,10 @@ summary(m_speed)
 ```
 
 ## Visualizations
+INSERT VISUALIZATIONS
 
 ## Discussion
+INSERT DISCUSSION
 
 ## References
+INSERT REFERENCES

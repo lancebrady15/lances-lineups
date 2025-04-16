@@ -1,5 +1,5 @@
 ---
-title: "Blog Post #1: Lineup Protection"
+title: "Blog Post #1: Lineup Protection or Lineup Penalty"
 author: "Lance Brady"
 date: "2025-02-18"
 categories: [lineup protection, lineups, statcast]
@@ -7,6 +7,14 @@ format: html
 editor: visual
 image: blog1.jpg
 ---
+
+## Takeaways
+
+1.  The next batter's xwOBA does have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative. A stronger on-deck hitter results in lower than expected outcomes for that plate appearance.
+2.  Some of the league's best pitchers perform better when a strong hitter is on deck, serving as an indication of mental aptitude or ability to elevate in high-leverage moments that makes them so successful. This suggests that lineup protection may not be a universal phenomenon and that individual pitchers may have different responses to it.
+3.  While we see evidence pointing to fewer walks, more strikeouts, and fewer extra base hits with better `next_batter_xwOBA`, we cannot conclusively point to the next batter's xwOBA as the cause of these effects.
+4.  Even when controlling for batter skill, matchup effects, and game state, a higher next_batter_xwOBA is associated with a small but statistically significant decrease in the current batter’s expected batting average (xBA) for that plate appearance. If the next batter’s xwOBA goes up by 0.100, we estimate a \~-0.003 reduction in pa_xBA per plate appearance—over 500 plate appearances, that amounts to about 1.5 fewer hits compared to otherwise.
+5.  When we select certain fixed effects, we find that the next batter's xwOBA continue to have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative. A stronger on-deck hitter results in lower than expected outcomes for that plate appearance.
 
 ## Introduction to Lineup Protection
 
@@ -20,9 +28,11 @@ Hall of Famer Miguel Cabrera attributed part of his power struggles early in the
 
 **Hitter Outcome Analysis:** Investigating whether the quality of the next hitter influences the current hitter’s performance. Pre-Pitch F/X research found that pitchers who know that a good hitter is up next will "pitch around" the current hitter, resulting in significantly more walks, and moderately more strikeouts. However, it found that when it comes to putting the ball in play, there was no significant impact (Tango, 2006). Much of the sabermetric community says that lineup protection is a myth, and that a player's production is almost solely determined by their own skills; luck and random variation also play a small role (Ambrosino, 2011). A 2008 study found that with a small magnitude, the quality of the on-deck hitter negatively impacts the preceding hitter (Bradbury, 2008).
 
-However, a study in 2011 using Retrosheet play-by-play data from 2002-2009 MLB seasons found that power numbers did have significant differences in situations of potential lineup protection. This study argues that previous evidence of lineup protection was not uncovered because endogeneity bias introduced by managers selectively choosing their lineups. For a player's own performance, they likely are hitting better than their own season averages when they are near the top of the lineup (they have more protection) because they are already doing well at that time for a number of reasons. A good hitter who, for whatever reason, is hitting poorly will be put at the bottom of the lineup (and have less protection), but likely hit well at that spot, and thus, we would observe better hitting with less protection. Thus, protection and performance numbers become tangled in unobservable ways.
+However, a study in 2011 using Retrosheet play-by-play data from 2002-2009 MLB seasons found that power numbers did have significant differences in situations of potential lineup protection. This study argues that previous evidence of lineup protection was not uncovered because endogeneity bias introduced by managers selectively choosing their lineups. For a player's own performance, they likely are hitting better than their own season averages when they are near the top of the lineup (they have more protection) because they are already doing well at that time for a number of reasons. A good hitter who, for whatever reason, is hitting poorly will be put at the bottom of the lineup (and have less protection), but likely hit well at that spot, and thus, we would observe better hitting with less protection. Thus, protection and performance numbers become tangled in unobservable ways. While these endogeneity issues are a concern, they seem to work in both directions, and with a robust enough dataset, we should be able to see the effects of lineup protection, if it is a real phenomenon.
 
 Using injuries to a batter’s “protector” as a quasi-random natural experiment, this study finds that batters who have stronger protection (i.e., a higher OPS hitter behind them) produce significantly more power. Specifically, a 100-point increase in the protector’s OPS correlates with a 9.7% rise in extra-base hits, and the effect is especially pronounced for third hitters (a 26% increase). The results also suggest that when left unprotected, batters draw more walks—particularly intentional walks, as previous literature has supported (Phillips, 2011). It also found that hits in general remained unchanged with protection or not, suggesting that batters are not simply putting the ball into play fewer times, but having less powerful, and thus, productive, contact. However, this study simply made claims about the distribution of outcomes and not about overall offensive production. Protected hitters got fewer walks and more extra-base hits, which act in opposing manners. Our study will use Expected Weighted On-Base Average, an offensive statistic that correlates directly with a player's overall contribution to run production from the plate, to tackle this gap in research.
+
+We will also use a large sample size of over 3 million plate appearances from 2015-2024 to ensure that our results are robust.
 
 Most other previous literature of hitter outcome analysis has been rather anecdotal, focusing on specific players and how they fare with protection. Using over 3000 Plate Appearances from Pete Alonso's career before his 2024 season, we can see higher slugging percentages with better hitters behind him, along with being 11% more likely to homer. With worse protection, he is more likely to walk, although his strikeout rates go against previous research and actually decrease with poor hitters behind him (Britton, 2024). Other research takes specific teams and analyzes whether the topic of lineup protection even applies and whether it serves a purpose in that roster's decision-making. When the Diamondbacks acquired Mark Trumbo in 2014, writers brought up the fact that even though Trumbo's power threat could serve to protect Paul Goldschmidt, Trumbo may not even be much better than other Diamondbacks hitters who could replace him in terms of offensive threat in general (Wiser, 2014). In 2015, Billy Hamilton pointed to a different sort of offensive advantage owing to the hitter behind him–knowing Joey Votto was hitting after him, an incredibly selective hitter often with long counts, allowed Hamilton to be patient and wait for the right pitch to steal on. In this situation, with a small sample size, the threat of Votto was preventing opposing pitchers from throwing fastballs with Hamilton on base, allowing Hamilton to get better base-stealing opportunities (Petriello, 2015).
 
@@ -40,9 +50,9 @@ We would like our independent variables to be the following:
 
 -   Current pitcher random effects
 
--   Current hitter's handedness and underlying quality (xwOBA)
+-   Current hitter's handedness and underlying quality (e.g. xwOBA, xBA)
 
--   Next hitter's handedness and underlying quality (xwOBA)
+-   Next hitter's handedness and underlying quality (e.g. xwOBA, xBA)
 
 -   Base-out state
 
@@ -58,546 +68,57 @@ We will use a mixed-effects linear model to account for the random effects of pi
 
 ## Methods
 
-First, we loaded in our libraries and read the data, which contains almost every pitch from the 2024 season (excluding when poor data was retrieved).
-
-```{r}
-#| echo: false
-#| output: false
-
-library(tidyverse)
-library(lme4)
-library(lmerTest)
-library(ggeffects)
-library(car)
-library(pubtheme)
-library(baseballr)
-```
-
-```{r}
-statcast_data <- readRDS("data/statcast_all_years.rds")
-```
-
-For each plate appearance, we aggregate key variables. In this code, each plate appearance is identified by grouping on `game_pk` and `at_bat_number`, then we take the last pitch (using `which.max(pitch_number)`) to define final values for fields like `pa_xwOBA`, `pa_xBA`, and `pa_woba`. Specifically, `pa_xwOBA` is assigned the value from `estimated_woba_using_speedangle` on the last pitch, and similarly `pa_xBA` comes from `estimated_ba_using_speedangle`. We also create `pa_BA` as `1` if the `final_event` is `"single"`, `"double"`, `"triple"`, or `"home_run"`, and `pa_SLG` by mapping those same events to `1`, `2`, `3`, or `4` respectively. We compute `pitches_per_pa` via `n()`, reflecting how many pitches occurred in each plate appearance. Furthermore, we define `is_extra_base_hit` if `final_event` is `"double"`, `"triple"`, or `"home_run"`, `is_walk` if the `final_event` is `"walk"` or `"intent_walk"`, and `is_strikeout` if the `final_event` is `"strikeout"` or `"strikeout_double_play"`. Finally, the code calculates `run_diff` as the difference between `bat_score` and `fld_score` on the last pitch, capturing the score differential before the plate appearance’s outcome is officially applied.
-
-```{r}
-pa_data <- statcast_data %>%
-  group_by(game_pk, at_bat_number) %>%
-  summarize(
-    # Plate appearance identifiers and context from final pitch
-    game_year              = game_year[which.max(pitch_number)],
-    batter                 = batter[which.max(pitch_number)],
-    pitcher                = pitcher[which.max(pitch_number)],
-    inning                 = inning[which.max(pitch_number)],
-    inning_topbot          = inning_topbot[which.max(pitch_number)],
-    batter_handedness      = stand[which.max(pitch_number)],
-    outs_when_up           = outs_when_up[which.max(pitch_number)],
-    run_diff               = bat_score[which.max(pitch_number)] - fld_score[which.max(pitch_number)],
-    
-    # Final pitch values for this PA
-    pa_xwOBA               = estimated_woba_using_speedangle[which.max(pitch_number)],
-    pa_xSLG                = estimated_slg_using_speedangle[which.max(pitch_number)],
-    pa_xBA                 = estimated_ba_using_speedangle[which.max(pitch_number)],
-    pa_woba                = woba_value[which.max(pitch_number)],
-    on_1b                  = on_1b[which.max(pitch_number)],
-    on_2b                  = on_2b[which.max(pitch_number)],
-    on_3b                  = on_3b[which.max(pitch_number)],
-    final_event            = events[which.max(pitch_number)],
-
-    # Count pitches
-    pitches_per_pa         = n(),
-
-    .groups = "drop"
-  ) %>%
-  arrange(game_pk, inning, inning_topbot, at_bat_number) %>%
-  mutate(
-    # Basic batting stats
-    pa_BA  = if_else(final_event %in% c("single", "double", "triple", "home_run"), 1, 0),
-    pa_SLG = case_when(
-      final_event == "single"   ~ 1,
-      final_event == "double"   ~ 2,
-      final_event == "triple"   ~ 3,
-      final_event == "home_run" ~ 4,
-      TRUE                      ~ 0
-    ),
-    is_extra_base_hit = final_event %in% c("double", "triple", "home_run"),
-    is_walk           = final_event %in% c("walk", "intent_walk"),
-    is_strikeout      = final_event %in% c("strikeout", "strikeout_double_play")
-  )
-
-```
-
-We then find the next batter in the lineup and get their handedness. We can first organize the plate appearances by the game, then which team is hitting (derived from `inning_topbot`, and the plate appearance `at_bat_number`. Except for the last plate appearance for a team in a game, we assume that the protection is coming from the player hitting in the following plate appearance. For the last plate appearance for a team in a game, we make the `potential_next_batter` simply the batter who followed the player the previous time they came up.
-
-This even works when the last hitter (or both the last and penultimate) in the game is a pinch hitter, as we can look at the second (or third) to last hitter's previous plate appearance, then find who would be following the pinch hitter in the lineup.
-
-Note that this does not account for potential pinch hitters in the on-deck circle at the end of a game, pinch hitters who were in the on-deck circle at the time of the third out in an inning, and changes to a hitter in the middle of a plate appearance.
-
-```{r}
-pa_data <- pa_data %>%
-  ## Order by game, half-inning, and at-bat
-  arrange(game_pk, inning_topbot, at_bat_number) %>%
-  
-  ## Within each half-inning, define a naive next batter/handedness
-  group_by(game_pk, inning_topbot) %>%
-  mutate(
-    naive_next_batter                 = lead(batter),
-    naive_next_batter_handedness      = lead(batter_handedness),
-    # 2-ahead references
-    naive_next_next_batter            = lead(lead(batter)),
-    naive_next_next_batter_handedness = lead(lead(batter_handedness)),
-    # previous references
-    naive_previous_batter             = lag(batter),
-    naive_previous_batter_handedness  = lag(batter_handedness),
-    # 3-ahead references
-    naive_next_next_next_batter            = lead(lead(lead(batter))),
-    naive_next_next_next_batter_handedness = lead(lead(lead(batter_handedness))),
-    # previous-previous references
-    naive_previous_previous_batter            = lag(lag(batter)),
-    naive_previous_previous_batter_handedness = lag(lag(batter_handedness))
-  ) %>%
-  ungroup() %>%
-  
-  ## Wipe out cross-inning naive values
-  mutate(
-    same_half_inning = lead(game_pk) == game_pk & lead(inning_topbot) == inning_topbot,
-    naive_next_batter            = if_else(same_half_inning, naive_next_batter, NA_integer_),
-    naive_next_batter_handedness = if_else(same_half_inning, naive_next_batter_handedness, NA_character_)
-  ) %>%
-  
-  ## For each (game_pk, batter), fill down naive_next_batter
-  group_by(game_pk, batter) %>%
-  fill(naive_next_batter, naive_next_batter_handedness, .direction = "down") %>%
-  ungroup() %>%
-  
-  ## Fallback 1 -> Use naive_previous_batter groups
-  group_by(game_pk, naive_previous_batter) %>%
-  # Fill down naive_next_next_batter so each row in the group knows the last seen value
-  fill(naive_next_next_batter, naive_next_next_batter_handedness, .direction = "down") %>%
-  # If naive_next_batter is still NA, use the second-to-last row's naive_next_next_batter
-  mutate(
-    naive_next_batter = if_else(
-      is.na(naive_next_batter),
-      nth(naive_next_next_batter, n() - 1, default = NA_integer_),
-      naive_next_batter
-    ),
-    naive_next_batter_handedness = if_else(
-      is.na(naive_next_batter_handedness),
-      nth(naive_next_next_batter_handedness, n() - 1, default = NA_character_),
-      naive_next_batter_handedness
-    )
-  ) %>%
-  ungroup() %>%
-  
-  # If naive_next_batter is still NA, use the second-to-last row's naive_next_next_batter UNGROUPED
-  mutate(
-    naive_next_batter = if_else(
-      is.na(naive_next_batter),
-      lag(naive_next_next_batter),
-      naive_next_batter
-    ),
-    naive_next_batter_handedness = if_else(
-      is.na(naive_next_batter_handedness),
-      lag(naive_next_next_batter_handedness),
-      naive_next_batter_handedness
-    )
-  ) %>%
-  
-  ## Fallback 2 -> Use naive_previous_previous_batter groups
-  group_by(game_pk, naive_previous_previous_batter) %>%
-  # Fill down naive_next_next_batter so each row in the group knows the last seen value
-  fill(naive_next_next_next_batter, naive_next_next_next_batter_handedness, .direction = "down") %>%
-  # If naive_next_batter is still NA, use the second-to-last row's naive_next_next_batter
-  mutate(
-    naive_next_batter = if_else(
-      is.na(naive_next_batter),
-      nth(naive_next_next_next_batter, n() - 2, default = NA_integer_),
-      naive_next_batter
-    ),
-    naive_next_batter_handedness = if_else(
-      is.na(naive_next_batter_handedness),
-      nth(naive_next_next_next_batter_handedness, n() - 2, default = NA_character_),
-      naive_next_batter_handedness
-    )
-  ) %>%
-  ungroup() %>%
-  
-  # If naive_next_batter is still NA, use the third-to-last row's naive_next_next_next_batter UNGROUPED
-  mutate(
-    naive_next_batter = if_else(
-      is.na(naive_next_batter),
-      lag(lag(naive_next_next_next_batter)),
-      naive_next_batter
-    ),
-    naive_next_batter_handedness = if_else(
-      is.na(naive_next_batter_handedness),
-      lag(lag(naive_next_next_next_batter_handedness)),
-      naive_next_batter_handedness
-    )
-  ) %>%
-  
-  ## Rename & drop the extras
-  rename(
-    potential_next_batter            = naive_next_batter,
-    potential_next_batter_handedness = naive_next_batter_handedness
-  ) %>%
-  select(
-    -naive_next_next_batter,
-    -naive_next_next_batter_handedness,
-    -naive_previous_batter,
-    -naive_previous_batter_handedness,
-    -naive_next_next_next_batter,
-    -naive_next_next_next_batter_handedness,
-    -naive_previous_previous_batter,
-    -naive_previous_previous_batter_handedness
-  )
-```
-
-Let's also create a single baserunner state variable. We can simply check which of `on_1b`, `on_2b`, and `on_3b` have MLBAMIds and create strings based on that.
-
-```{r}
-pa_data <- pa_data %>%
-  mutate(
-    baserunner_state = case_when(
-      !is.na(on_1b) & is.na(on_2b) & is.na(on_3b) ~ "1B",
-      is.na(on_1b) & !is.na(on_2b) & is.na(on_3b) ~ "2B",
-      is.na(on_1b) & is.na(on_2b) & !is.na(on_3b) ~ "3B",
-      !is.na(on_1b) & !is.na(on_2b) & is.na(on_3b) ~ "1B-2B",
-      !is.na(on_1b) & is.na(on_2b) & !is.na(on_3b) ~ "1B-3B",
-      is.na(on_1b) & !is.na(on_2b) & !is.na(on_3b) ~ "2B-3B",
-      !is.na(on_1b) & !is.na(on_2b) & !is.na(on_3b) ~ "Loaded",
-      TRUE ~ "Empty"
-    )
-  )
-```
-
-For the special case in which it is a tie game with 2 outs and bases loaded in the top of the ninth inning, protection will not matter. Thus, we can take out `potential_next_batter` in those scenarios.
-
-```{r}
-pa_data <- pa_data %>%
-  mutate(
-    # If it’s bottom of the 9th+ with 2 outs, bases loaded, and the game is tied,
-    # remove the potential next batter.
-    potential_next_batter = ifelse(
-      inning_topbot == "Bot" & 
-        inning >= 9 & 
-        outs_when_up == 2 & 
-        baserunner_state == "Loaded" & 
-        run_diff == 0,
-      NA,
-      potential_next_batter
-    )
-  )
-```
-
-```{r}
-pa_data = readRDS("data/pa_data.rds")
-```
-
-To get our full-season statistics, we will create custom functions to extract Statcast data using BaseballR. We first create a function `get_expected_stats_one_year` that takes in a `year` value and `min_pa` value and outputs a dataframe with each player's—those that had the minimum plate appearances—expected statistics for that year. We chose 200 plate appearances, which is just 40% of the number of plate appearances needed to be qualified for that year, as a player's true value should stabilize around that many plate appearances, and we did not want to cut out too much data. We then use `get_expected_stats_all_years` to get expected statistics across all years of Statcast data (2015-2024).
-
-```{r}
-get_expected_stats_one_year <- function(year, min_pa = 200) {
-  # Scrape the "expected_statistics" leaderboard for one season
-  # with a minimum PA (e.g. 200).
-  df <- statcast_leaderboards(
-    leaderboard = "expected_statistics",
-    year = year,
-    min_pa = min_pa,   # 200
-    player_type = "batter"
-  )
-  
-  # Keep only relevant columns & rename them.
-  # The returned columns may include more, but these are typical:
-  # "year", "player_id", "pa", "bip", "ba", "est_ba", "slg",
-  # "est_slg", "woba", "est_woba", etc.
-  df <- df %>%
-    select(
-      year,
-      player_id,
-      pa,
-      ba,
-      est_ba,
-      slg,
-      est_slg,
-      woba,
-      est_woba
-      # if you want more columns, add them here
-    ) %>%
-    rename(
-      game_year    = year,      # aligns with pa_data's "game_year"
-      batter_id    = player_id, # aligns with pa_data's "batter" ID
-      batter_PA    = pa,
-      batter_BA    = ba,
-      batter_xBA   = est_ba,
-      batter_SLG   = slg,
-      batter_xSLG  = est_slg,
-      batter_wOBA  = woba,
-      batter_xwOBA = est_woba
-    )
-  
-  return(df)
-}
-
-get_expected_stats_all_years <- function(start_year, end_year, min_pa = 200) {
-  
-  # Loop over each year, scrape the leaderboard, store results
-  all_stats <- lapply(seq(start_year, end_year), function(yr) {
-    message("Scraping year: ", yr)
-    get_expected_stats_one_year(year = yr, min_pa = min_pa)
-  })
-  
-  # Combine all into one data frame
-  all_stats_df <- bind_rows(all_stats)
-  
-  return(all_stats_df)
-}
-```
-
-Then, once we put all years of batting statistics into a dataframe titled `batter_stats_all`, we will add it to our plate appearance-level data `pa_data` for both the current batter of each row and the next batter. We will only keep rows for which the next batter has followed the current batter for at least 40 plate appearances. We will remove rows for which there are not complete statistics.
-
-```{r}
-## Get all years of batting stats from 2015-2024
-batter_stats_all <- get_expected_stats_all_years(2015, 2024, min_pa = 200)
-
-## Join with pa_data for current & next batters
-pa_data_with_batter <- pa_data %>%
-  left_join(batter_stats_all, by = c("game_year", "batter" = "batter_id"))
-
-next_batter_stats_all <- batter_stats_all %>%
-  rename(
-    next_batter_PA    = batter_PA,
-    next_batter_BA    = batter_BA,
-    next_batter_xBA   = batter_xBA,
-    next_batter_SLG   = batter_SLG,
-    next_batter_xSLG  = batter_xSLG,
-    next_batter_wOBA  = batter_wOBA,
-    next_batter_xwOBA = batter_xwOBA
-  )
-
-pa_data_with_both <- pa_data_with_batter %>%
-  left_join(next_batter_stats_all, by = c("game_year", 
-                                          "potential_next_batter" = "batter_id"))
-
-## Filter pairs with >= 40 PAs
-pa_data_with_both <- pa_data_with_both %>%
-  group_by(game_year, batter, potential_next_batter) %>%
-  mutate(combo_count = n()) %>%
-  ungroup() %>%
-  filter(combo_count >= 40) %>%
-  select(-combo_count)
-
-## Remove rows with missing season stats
-pa_data_final <- pa_data_with_both %>%
-  filter(
-    !is.na(batter_xwOBA) & !is.na(batter_xSLG) & !is.na(batter_xBA) &
-    !is.na(batter_wOBA) & !is.na(batter_BA) & !is.na(batter_SLG) &
-    !is.na(next_batter_xwOBA) &
-    !is.na(next_batter_xSLG) &
-    !is.na(next_batter_xBA) &
-    !is.na(next_batter_wOBA) &
-    !is.na(next_batter_BA) &
-    !is.na(next_batter_SLG)
-  )
-```
-
-```{r}
-saveRDS(pa_data_final, "data/pa_data_final.rds")
-
-# Load the data
-pa_data_final <- readRDS("data/pa_data_final.rds")
-```
-
-We need four more columns: `walk_rate` (BB%), `strikeout_rate` (K%), `xbh_rate` (XBH%), and `pitches_per_pa` (P/PA).
-
-We will get `walk_rate` and `strikeout_rate` from Fangraphs Leaderbaords using BaseballR, and find `xbh_rate` and `pitches_per_pa` manually using our `pa_data` dataset.
-
-First, we can get `xbh_rate` and `pitches_per_pa` manually.
-
-```{r}
-pa_extra_metrics <- pa_data %>%
-  group_by(game_year, batter) %>%
-  summarize(
-    xbh_rate = mean(is_extra_base_hit, na.rm = TRUE),  # extra-base hit rate
-    pitches_per_pa = mean(pitches_per_pa, na.rm = TRUE),    # pitches per plate appearance
-    .groups = "drop"
-  )
-
-## Join to add current batter's extra metrics.
-pa_data_final <- pa_data_final %>%
-  left_join(
-    pa_extra_metrics %>% 
-      select(game_year, batter, xbh_rate, pitches_per_pa) %>%
-      rename(
-        batter_xbh_rate    = xbh_rate,
-        batter_pitches_per_pa = pitches_per_pa
-      ),
-    by = c("game_year", "batter")
-  )
-
-## Join to add next batter's extra metrics.
-pa_data_final <- pa_data_final %>%
-  left_join(
-    pa_extra_metrics %>% 
-      select(game_year, batter, xbh_rate, pitches_per_pa) %>%
-      rename(
-        next_batter_xbh_rate    = xbh_rate,
-        next_batter_pitches_per_pa = pitches_per_pa
-      ),
-    by = c("game_year", "potential_next_batter" = "batter")
-  )
-```
-
-Let's also get our `walk_rate` and `strikeout_rate` using BaseballR.
-
-```{r}
-## Function to get FanGraphs BB% and K% for qualified batters 
-## from start_season to end_season (inclusive)
-
-get_fg_batter_rates <- function(start_season, end_season) {
-  # Create a vector of seasons as characters
-  seasons <- as.character(seq(start_season, end_season))
-  
-  # Loop over each season and scrape the batter leaderboard
-  fg_data_list <- lapply(seasons, function(season) {
-    message("Scraping FanGraphs batter leaders for season: ", season)
-    df <- fg_batter_leaders(
-      startseason = season,
-      endseason = season,
-      qual = "y",      # Only qualified hitters
-      ind = "1",       # Split seasons individually
-      pageitems = "10000"
-    )
-    # Select only the columns we need.
-    df %>% 
-      select(Season, xMLBAMID, BB_pct, K_pct)
-  })
-  
-  # Bind rows together from all seasons
-  fg_data_all <- bind_rows(fg_data_list)
-  
-  # Rename Season to game_year, convert to numeric, and convert xMLBAMID to factor
-  fg_data_all <- fg_data_all %>%
-    rename(game_year = Season) %>%
-    mutate(
-      game_year = as.numeric(game_year),
-      xMLBAMID = as.factor(xMLBAMID)
-    )
-  
-  return(fg_data_all)
-}
-
-## Get FanGraphs batter rates for all seasons 2015-2024
-fg_rates_all <- get_fg_batter_rates(2015, 2024)
-
-## Join the scraped FanGraphs rates into pa_data_final
-# Join current batter rates.
-pa_data_final <- pa_data_final %>%
-  left_join(
-    fg_rates_all,
-    by = c("game_year", "batter" = "xMLBAMID")
-  ) %>%
-  rename(
-    batter_bb_pct = BB_pct,
-    batter_k_pct  = K_pct
-  )
-
-pa_data_final <- pa_data_final %>%
-  mutate(
-    potential_next_batter = as.factor(potential_next_batter)
-  )
-
-# Join next batter rates.
-pa_data_final <- pa_data_final %>%
-  left_join(
-    fg_rates_all,
-    by = c("game_year", "potential_next_batter" = "xMLBAMID")
-  ) %>%
-  rename(
-    next_batter_bb_pct = BB_pct,
-    next_batter_k_pct  = K_pct
-  )
-```
-
-Next, we'll add columns for `xwOBA_diff`, `xBA_diff`, and `xSLG_diff`, which are the differences between the current batter's xwOBA, xBA, and xSLG and the plate appearance's xwOBA, xBA, and xSLG.
-
-```{r}
-# Calculate differences
-pa_data_final <- pa_data_final %>%
-  mutate(
-    xwOBA_diff = pa_xwOBA - batter_xwOBA,
-    xBA_diff   = pa_xBA - batter_xBA,
-    xSLG_diff  = pa_xSLG - batter_xSLG
-  )
-
-test = pa_data_final %>%
-  # Fill NAs with 0 in pa_xwOBA
-  mutate(
-    pa_xwOBA = ifelse(is.na(pa_xwOBA), 0, pa_xwOBA),
-    # Fill NAs with 0 in xwOBA_diff
-    xwOBA_diff = ifelse(is.na(xwOBA_diff), 0, xwOBA_diff)
-  )
-```
-
-```{r}
-# Save the final data frame
-saveRDS(pa_data_final, "data/pa_data_final.rds")
-```
-
-The last thing we will do is ensure that all of the variables we expect to act non-linearly are factors for our models.
-
-```{r}
-# Convert certain variables to factors
-pa_data_final$batter_handedness <- factor(pa_data_final$batter_handedness)
-pa_data_final$potential_next_batter_handedness <- factor(pa_data_final$potential_next_batter_handedness)
-pa_data_final$batter <- factor(pa_data_final$batter)
-pa_data_final$pitcher <- factor(pa_data_final$pitcher)
-pa_data_final$baserunner_state <- factor(pa_data_final$baserunner_state)
-pa_data_final$inning <- factor(pa_data_final$inning)
-pa_data_final$outs_when_up <- factor(pa_data_final$outs_when_up)
-```
-
-Let's now do our first model
+For full methods and model outputs [view the full appendix here](../../appendix/blog1-appendix.qmd).
 
 ## Model #1: Mixed Effects Linear Model of Plate Appearances
 
 ### I. Overall Offensive Value: wOBA and xWOBA
 
-First, let's look at residuals from season-long averages for each plate appearance.
+First, let's look at residuals from season-long averages for each plate appearance. We will read in our libraries and data.
+
+```{r}
+library(lme4)
+library(lmerTest)
+library(tidyverse)
+library(pubtheme)
+library(purrr)
+
+pa_data_final = readRDS("data/pa_data_final.rds")
+```
+
+Our first model will be a mixed-effects linear model of plate appearances, where we will use the xwOBA of the current plate appearance as our outcome variable. We will use the xwOBA of the current and next batters as our main independent fixed effect, and we will also include the batter's handedness matchup, the next batter's handedness matchup, the baserunner state, outs when up, run differential, and game year as fixed effects. We will also include random effects for pitcher and batter. Note that the next batter's handedness matchup is the handedness of the next batter with the handedness of the current pitcher, and thus does not account for potential anticipated calls to the bullpen (when a pitcher knows they are coming out after the current batter) or pinch-hitting situations.
 
 ```{r}
 m_protection_1 <- lmer(
-  xwOBA_diff ~ next_batter_xwOBA + 
-    batter_handedness + potential_next_batter_handedness +
-    baserunner_state + outs_when_up + run_diff +
-    (1 | pitcher) + (1 | batter),
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA + 
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff + game_year +
+    (1 | pitcher),
   data = pa_data_final
 )
 
 summary(m_protection_1)
 ```
 
-Before we look at our model summary, let's check the assumptions of our model.
+One piece of verifying evidence for our model is that the coefficient of `batter_xwOBA` is about 1 (it is 1.02), as we are predicting the xwOBA of a player's plate appearance using their average xwOBA from the year. It is also verifying that our `current_matchup_advantage` is positive and signficant, with a coefficient of 0.02, indicating that the batter's handedness matchup advantage does have a positive impact on the xwOBA of the current plate appearance.
 
-```{r}
-# Check for normality of residuals
-qqnorm(resid(m_protection_1))
+When accounting for all of the other variables, we can see that the coefficient of `next_batter_xwOBA` is negative, at -0.02742, and signficant at the $\alpha$ = 0.05 level, with a p-value of 0.02.
 
-# Check for homoscedasticity
-plot(fitted(m_protection_1), resid(m_protection_1))
+This coefficient means that with a 0.100 increase in the next batter's xwOBA, we would expect a 0.0027 decrease in the current plate appearance's xwOBA. This is a small effect, but it is statistically significant and suggests that a reverse lineup protection, or a lineup penalty does exist to some degree when a better hitter is on deck.
 
-# Check for multicollinearity
-vif(m_protection_1)
-```
+We do not find that a matchup advantage on deck has a significant impact on the current plate appearance's xwOBA, with a coefficient of 0.0008 and a p-value of 0.37.
 
-This first model shows us that `next_batter_xwOBA` certainly does have a small, but signficant impact on the result of the current plate appearance, with a p-value below 0.05. The coefficeint is negative, however, indicating that having a better next batter correlates with worse overall offensive outcomes for hitters.
+While we will want to use model selection techniques to check if all of these variables are important, other signficant coefficients make sense. The only two `baserunner_state` with a singificant coefficient is when a runner is on 2B, with a positive coefficient of 0.008, or 1B and 3B, with a postivie coefficient of 0.006 indicating that having a runner on 2B or 1B-3B increases the xwOBA of the current plate appearance. The `outs_when_up` variable has a negative and signficiant coefficient, indicating that having more outs when up decreases the xwOBA of the current plate appearance. The `run_diff` variable has a positive and significant coefficient, indicating that having a larger run differential increases the xwOBA of the current plate appearance. This could indicate that when teams are up by a lot, they tend to be facing weaker pitchers, or have a confidence that helps them at the plate. Overall, this effect is incredibly small. `game_year` also makes sense, as the most signficant positive coefficeints in years 2019, 2021, 2022, 2023, and 2024 were all years with higher run scoring environments than the reference level of 2015.
 
-It is worth noting that we got a singularity with regards to the random effect `(1 | batter)`. This indicates that the model already has the effect of the batter baked into the model through the `xwOBA_diff` outcome variable, which is derived from `pa_xwOBA` and `batter_xwOBA`. So, we know that almost all of the variance between batters can be accounted for by their season-long `batter_xwOBA`. Thus, our next model takes a slightly different approach, estimating the xwOBA of each plate appearance directly. We expect the coefficient of `batter_xwOBA` to be 1, as we are predicting the xwOBA of a player's plate appearance using their average xwOBA from the year.
+Let's check this model with a mixed-effects linear model of plate appearances, where we will use the xwOBA difference of the current plate appearance from the batter's season long average as the outcome variable. We will use the xwOBA of the next batter as our main independent variable, and we will also include the batter's handedness, the next batter's handedness, the baserunner state, outs when up, run differential, and game year as fixed effects. We will also include random effects for pitcher.
+
+It is worth noting that initially we got a singularity with regards to the random effect `(1 | batter)` when it was included. This indicated that the model already had the effect of the batter baked into the model through the `xwOBA_diff` outcome variable, which is derived from `pa_xwOBA` and `batter_xwOBA`. So, we knew that almost all of the variance between batters can be accounted for by their season-long `batter_xwOBA`.
 
 ```{r}
 m_protection_2 <- lmer(
-  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA + 
-    batter_handedness + potential_next_batter_handedness +
-    baserunner_state + outs_when_up + run_diff +
+  xwOBA_diff ~ next_batter_xwOBA + 
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff + game_year +
     (1 | pitcher),
   data = pa_data_final
 )
@@ -605,11 +126,220 @@ m_protection_2 <- lmer(
 summary(m_protection_2)
 ```
 
-As expected, our `batter_xwOBA` coefficient is near 1 at 1.011, and our `next_batter_xwOBA` coefficient is signficant and negative at -0.02409. 
+Coefficients of this model mirror those of the previous model in both signficance and direction, but our `next_batter_xwOBA` coefficient has decreased in magnitude to -0.02224, and is still signficant at the $\alpha$ = 0.05 level, with a p-value of 0.05. This further supports our evidence that the next batter's xwOBA does have a small but significant impact on the current plate appearance's xwOBA, and that this effect is negative.
 
-**Takeaway:** If your next batter’s season-long xwOBA is 0.100 higher than average (e.g., .350 vs. .250), your own plate appearance xwOBA is predicted to be about 0.0024 points lower – a drop of around 0.8% relative to a typical .300 xwOBA.
+For interpretability, we will go back to predicting `pa_xwOBA` in our next model, as it is a more intuitive metric to understand than the difference from the batter's season-long average.
 
-### II. Ability for Contact: BA and xBA
+**Takeaway:** The next batter's xwOBA does have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative. A stronger on-deck hitter results in lower than expected outcomes for that plate appearance.
+
+If we now want to incorporate how different hitters and pitchers are affected by the next batter, we can add a slope for the next batter's xwOBA as a random effect. This will allow us to see how the effect of the next batter's xwOBA varies by pitcher. We do not expect an equivalent effect with batters, as players describe how the pitcher will act differently based on the abilities of the next batter, not the batter. To make sure there is enough data to get a good estimate of the slope, we will only include pitchers with at least 100 plate appearances in our dataset for a given year. We will treat the slope and intercept independently, as we do not expect that pitchers who allow higher/lower overall xwOBA also respond differently to lineup protection.
+
+```{r}
+# Count number of plate appearances per pitcher per year
+pitcher_counts <- pa_data_final %>%
+  group_by(pitcher, game_year) %>%
+  summarize(n_pa = n(), .groups = "drop") %>%
+  filter(n_pa >= 100) 
+
+# Filter dataset to just those pitchers
+pa_filtered <- pa_data_final %>%
+  mutate(pitcher_year = interaction(pitcher, game_year)) %>%
+  filter(pitcher_year %in% interaction(pitcher_counts$pitcher, pitcher_counts$game_year))
+
+```
+
+Let's run our model using `pa_filtered`.
+
+```{r}
+m_protection_slope <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff + game_year +
+    (1 + next_batter_xwOBA || pitcher_year),  # uncorrelated random effects
+  data = pa_filtered
+)
+
+summary(m_protection_slope)
+```
+
+While the signficance of `game_year` coefficients have disappeared, the rest of the coefficients are similar to the previous model. The coefficient of `next_batter_xwOBA` is now -0.0315, and is signficant at the $\alpha$ = 0.05 level, with a p-value of 0.02.
+
+#### IA. Inspection of the Random Effects for xwOBA
+
+In order to get an indication of whether these random slopes are important and not just a product of random noise, we can look at the random effects of the model. We can do this by looking at the random slopes for the next batter's xwOBA for each pitcher-year combination.
+
+```{r}
+## Convert to a dataframe with rownames as a column
+re_df <- ranef(m_protection_slope)$pitcher_year %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "pitcher_year")
+
+## Separate into pitcher ID and year
+re_df <- re_df %>%
+  separate(pitcher_year, into = c("pitcher", "year"), sep = "\\.", convert = TRUE)
+
+## Initialize a list to store correlation results
+yoy_results <- list()
+
+## Loop through each year pair and calculate correlations
+years <- sort(unique(re_df$year))
+
+for (i in 1:(length(years) - 1)) {
+  y1 <- years[i]
+  y2 <- years[i + 1]
+  
+  df_pair <- re_df %>%
+    filter(year %in% c(y1, y2)) %>%
+    select(pitcher, year, next_batter_xwOBA) %>%
+    pivot_wider(names_from = year, values_from = next_batter_xwOBA, names_prefix = "xwOBA_") %>%
+    drop_na()
+  
+  cor_val <- cor(df_pair[[paste0("xwOBA_", y1)]], df_pair[[paste0("xwOBA_", y2)]])
+  
+  yoy_results[[paste0(y1, "_to_", y2)]] <- list(
+    from = y1,
+    to = y2,
+    correlation = cor_val,
+    n_shared_pitchers = nrow(df_pair)
+  )
+}
+
+## Print all year-over-year correlations
+yoy_df <- bind_rows(yoy_results, .id = "year_pair")
+print(yoy_df)
+```
+
+All of these Year-Over-Year correlations (with 2020 results ommitted due to limited sample size) are positive and greater than 0.3, except for 2019 to 2021 (still 0.25). This indicates that the random slopes for the next batter's xwOBA are relatively stable over time, and that pitchers who are more affected by the next batter's xwOBA in one year are likely to be similarly affected in the following year. This implies that the effect of the next batter's xwOBA is not just a product of random noise, but rather a consistent pattern across pitchers.
+
+We can graph the most recent year pair (2023 to 2024) to visualize the relationship between the random slopes for the next batter's xwOBA in those two years.
+
+```{r}
+## Make a graph for the most recent year pair (2023 to 2024)
+re_23_24 <- re_df %>%
+  filter(year %in% c(2023, 2024)) %>%
+  select(pitcher, year, next_batter_xwOBA) %>%
+  pivot_wider(names_from = year, values_from = next_batter_xwOBA, names_prefix = "xwOBA_") %>%
+  drop_na()
+
+## Plot
+ggplot(re_23_24, aes(x = xwOBA_2023, y = xwOBA_2024)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Pitcher Susceptibility to Lineup Protection (2023 vs. 2024)",
+    subtitle = paste0("r = ", round(cor(re_23_24$xwOBA_2023, re_23_24$xwOBA_2024), 3)),
+    x = "Random Slope on next_batter_xwOBA (2023)",
+    y = "Random Slope on next_batter_xwOBA (2024)"
+  ) +
+  theme_pub()
+```
+
+Now that we know that these random slopes are stable over time, we will decide to keep them in our model going forward for interpretability.
+
+This also means that studying indvidual pitcher's susceptibility to lineup protection is a worthwhile endeavor. We can look at the top 10 and bottom 10 pitchers in terms of their random slope for the next batter's xwOBA.
+
+```{r}
+## Get 2024 slopes
+slopes_2024 <- re_df %>%
+  filter(year == 2024) %>%
+  select(pitcher, year, next_batter_xwOBA)
+
+## Get top and bottom 10
+top_10 <- slopes_2024 %>% arrange(desc(next_batter_xwOBA)) %>% slice(1:10)
+bottom_10 <- slopes_2024 %>% arrange(next_batter_xwOBA) %>% slice(1:10)
+
+## Base URL of the data
+base_url <- "https://raw.githubusercontent.com/chadwickbureau/register/master/data/"
+
+## Create vector of suffixes for filenames
+suffixes <- c(0:9, letters[1:6])
+file_urls <- paste0(base_url, "people-", suffixes, ".csv")
+
+## Read and combine all files safely, treating all columns as characters
+people <- map_dfr(file_urls, ~ read_csv(.x, col_types = cols(.default = "c")))
+
+## Clean and convert MLBAM ID for joining
+people_clean <- people %>%
+  select(key_mlbam, name_first, name_last) %>%
+  mutate(key_mlbam = as.integer(key_mlbam))
+
+## Join to top 10 and bottom 10 results
+top_10 <- top_10 %>%
+  left_join(people_clean, by = c("pitcher" = "key_mlbam")) %>%
+  select(name_first, name_last, pitcher, next_batter_xwOBA)
+
+bottom_10 <- bottom_10 %>%
+  left_join(people_clean, by = c("pitcher" = "key_mlbam")) %>%
+  select(name_first, name_last, pitcher, next_batter_xwOBA)
+
+## Display
+top_10
+bottom_10
+```
+
+In 2024, the random slopes on next_batter_xwOBA reveal how individual pitchers deviated from the average lineup protection effect—where the fixed effect of next_batter_xwOBA was negative, indicating that pitchers tend to allow lower expected outcomes when a strong hitter is looming. At the top of the slope distribution, pitchers like Roddery Muñoz, Martín Pérez, and Randy Vásquez had positive random slopes, meaning the usual lineup protection suppression effect was less true for them—or even reversed. These pitchers were more susceptible to lineup protection (they allow better results when a stronger batter is on deck).
+
+In contrast, pitchers like Tyler Glasnow, Paul Skenes, and Bryan Woo had even more negative slopes than average, suggesting they are especially effective at suppressing outcomes when a strong next batter is present. These pitchers were less affected (or may even pitch better) in those scenarios where a stronger batter is on deck.
+
+It is worth noting that although some of the league's best pitchers (like Glasnow and Skenes) are at the bottom of this list, this does not mean that these lists are simply a ranking of pitcher quality. The random slopes are not correlated with the fixed effect of next_batter_xwOBA, and thus, a pitcher can be very good and still have a high random slope. This is because the random slope is measuring how much the pitcher deviates from the average lineup protection effect, not how good they are overall.
+
+So, when we see some of the leagues best pitchers at the bottom of this list, it means that one of their skills is to be able to pitch well regardless of the next batter's quality, and potentially even better when there is a threat looming.
+
+**Takeaway:** Some of the league's best pitchers perform better when a strong hitter is on deck, serving as an indication of mental aptitude or ability to elevate in high-leverage moments that makes them so successful. This suggests that lineup protection may not be a universal phenomenon and that individual pitchers may have different responses to it.
+
+#### IB. Drivers of the Overall Offensive Effect
+
+Let's try to uncover where these overall offensive effects are coming from. Since `is_walk`, `is_strikeout`, and `is_extra_base_hit` are binary outcome variables (TRUE/FALSE), we'll want to use logistic regression models. We will use `glm` instead of `glmer` as models including failed to converge within a reasonable amount of time. First, we will look at walks.
+
+```{r}
+m_protection_walk <- glm(
+  is_walk ~ batter_bb_pct + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff + game_year,
+  data = pa_data_final,
+  family = binomial(link = "logit")
+)
+summary(m_protection_walk)
+```
+
+As expected, `batter_bb_pct` and `current_matchup_advantage` both have positive and signficant coefficients in our walk model. `m_protection_walk` shows that the coefficient of `next_batter_xwOBA` is negative, but insignificant. This indicates that the next batter's xwOBA does not have a significant impact on the current plate appearance's walk rate. We can do the same for strikeouts:
+
+```{r}
+m_protection_strikeout <- glm(
+  is_strikeout ~ batter_k_pct + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff + game_year,
+  data = pa_data_final,
+  family = binomial(link = "logit")
+)
+summary(m_protection_strikeout)
+```
+
+The coefficient of `next_batter_xwOBA` is positive, but insignificant again. This indicates that the next batter's xwOBA does not have a significant impact on the current plate appearance's strikeout rate.
+
+We will also look at extra base hits:
+
+```{r}
+m_protection_extra_base_hit <- glm(
+  is_extra_base_hit ~ batter_xbh_rate + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff + game_year,
+  data = pa_data_final,
+  family = binomial(link = "logit")
+)
+summary(m_protection_extra_base_hit)
+```
+
+Again, the coefficient of `next_batter_xwOBA` is negative, but insignificant.
+
+These results suggest that the overall offensive effect attributed to lineup protection is not strongly driven by any single offensive outcome. While pitchers may slightly adjust their approach (especially walk likelihood) when facing a strong next batter or easier upcoming matchup, these adjustments do not translate significantly into changes in strikeout, walk, or extra-base hit rates.
+
+**Takeaway:** While we see evidence pointing to fewer walks, more strikeouts, and fewer extra base hits with better `next_batter_xwOBA`, we cannot conclusively point to the next batter's xwOBA as the cause of these effects.
+
+### II. Increased Interpretability: xBA
+
+In order to increase interpretability, we will also look at the xBA of the current plate appearance. We will use the same model as above, but with `pa_xBA` as our outcome variable instead of `pa_xwOBA`. We will also use the xBA of the current batter as our main independent fixed effect, along with the next batter's strength (as determined by xwOBA). We will also include the batter's handedness matchup, the next batter's handedness matchup, the baserunner state, outs when up, run differential, and game year as fixed effects. We will also include random effects for pitcher and batter.
 
 ```{r}
 pa_data_xba <- pa_data_final %>%
@@ -618,8 +348,8 @@ pa_data_xba <- pa_data_final %>%
 
 m_protection_xBA <- lmer(
   pa_xBA ~ batter_xBA + next_batter_xwOBA + 
-    batter_handedness + potential_next_batter_handedness +
-    baserunner_state + outs_when_up + run_diff +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff + game_year +
     (1 | pitcher),
   data = pa_data_xba
 )
@@ -627,13 +357,41 @@ m_protection_xBA <- lmer(
 summary(m_protection_xBA)
 ```
 
-This model examines how a plate appearance’s batting average metric (pa_xBA) depends on the batter’s season-long average (batter_xBA), the following hitter’s season-long expected wOBA (next_batter_xwOBA), and various other contextual factors. The large positive coefficient on batter_xBA (~0.979) reaffirms that the best predictor of a single PA’s batting outcome is the batter’s own established average. Meanwhile, having a higher next_batter_xwOBA (coefficient ~-0.0207) shows a small but statistically significant negative association, indicating the current hitter’s pa_xBA may drop a bit when a stronger hitter is on deck. Some baserunner states (e.g., runner on 3B) slightly increase pa_xBA, others (like runner on 2B alone) decrease it, and having more outs also lowers pa_xBA. The random effect for pitcher is relatively small, suggesting pitchers differ slightly in ways not captured by the fixed effects.
+This model examines how a plate appearance’s batting average metric (`pa_xBA`) depends on the batter’s season-long average (`batter_xBA`), the following hitter’s season-long expected wOBA (`next_batter_xwOBA`), and various other contextual factors. The large positive coefficient on batter_xBA (\~0.989) reaffirms that the best predictor of a single PA’s batting outcome is the batter’s own established average. Meanwhile, having a higher `next_batter_xwOBA` (coefficient \~-0.029) shows a small but statistically significant negative association, indicating the current hitter’s `pa_xBA` may drop a bit when a stronger hitter is on deck. Some baserunner states (e.g., runner on 1B, 1B-2B, or 1B-#B) slightly increase pa_xBA, others (like runner on 2B alone) decrease it, and having more outs also lowers pa_xBA.
 
-**Takeaway:** If the next batter’s xwOBA goes up by 0.100, we estimate a ~-0.002 reduction in pa_xBA per plate appearance—over 500 plate appearances, that amounts to about 1 fewer hit compared to otherwise.
+**Takeaway:** Even when controlling for batter skill, matchup effects, and game state, a higher next_batter_xwOBA is associated with a small but statistically significant decrease in the current batter’s expected batting average (xBA) for that plate appearance. If the next batter’s xwOBA goes up by 0.100, we estimate a \~-0.003 reduction in pa_xBA per plate appearance—over 500 plate appearances, that amounts to about 1.5 fewer hits compared to otherwise.
+
+### III. Model Selection of the Overall Offensive Output
+
+Let's return to our `m_protection_slope` model and see if we can improve it with model selection. Using the `drop1` function, which uses F-tests with Satterthwaite’s approximation for degrees of freedom to see what would happen to model fit if we removed each fixed effect one at a time, we get the following results.
+
+```{r}
+drop1(m_protection_slope, test = "Chisq")
+```
+
+As expected, `batter_xwOBA` is incredibly important to the model, along with `current_matchup_advantage`. `next_batter_xwOBA`, `outs_when_up`, and `baserunner_state` are also important, while `next_matchip_advantage`, `run_diff`, and `game_year` are not.
+
+Let's create a final model with just the most important fixed effects. We will also include the random slope for the next batter's xwOBA.
+
+```{r}
+m_protection_final <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + 
+    baserunner_state + outs_when_up +
+    (1 + next_batter_xwOBA || pitcher_year),  # uncorrelated random effects
+  data = pa_filtered
+)
+
+summary(m_protection_final)
+```
+
+In our final model, all coefficients, except for the different levels of `baserunner_state`, are significant. The coefficient of `next_batter_xwOBA` is -0.03083, and is signficant at the $\alpha$ = 0.05 level, with a p-value of 0.02. This indicates that the next batter's xwOBA does have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative.
+
+**Takeaway:** When we select certain fixed effects, we find that the next batter's xwOBA continue to have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative. A stronger on-deck hitter results in lower than expected outcomes for that plate appearance.
 
 ## Discussion
 
-This study, although rather simple, tackles some of the problems with sabermetrics' view of lineup protection. By accounting for different game situations, we find that the skill of the next batter does have a statistically significant impact on the offensive outcomes of the current one. While small, this will have significant implications for player evaluation and valuation, as we are establishing dependencies between players that have not been accounted for in the past. 
+This study, although rather simple, tackles some of the problems with sabermetrics' view of lineup protection. By accounting for different game situations, we find that the skill of the next batter does have a statistically significant impact on the offensive outcomes of the current one. While small, this will have significant implications for player evaluation and valuation, as we are establishing dependencies between players that have not been accounted for in the past. We also importantly incorporate the current baserunner situation, number of outs, and current batter handedness advantages, which proved signficant. These all point to the idea that simulations of baseball lineups should both include game situation states and the next batter's skill in order to get a more accurate picture of the current batter's expected outcomes. Each batter does not come up as an indepdent entity with a unique and stationary probability distribution of their outcomes, but rather a probability distribution slightly altered by externalities.
 
 ## References
 

@@ -6,6 +6,8 @@ categories: [swing profiles, lineups, statcast]
 format: html
 editor: visual
 image: blog2.jpg
+execute:
+  eval: false
 ---
 
 # Takeaways:
@@ -52,55 +54,14 @@ We will answer these questions mainly using linear regression and multiple linea
 
 ## Methods
 
-First, we loaded in our libraries and read the data, which contains almost every pitch from the 2024 season (excluding when poor data was retrieved).
+For full methods and model outputs [view the full appendix here](../../appendix/blog2-appendix.qmd).
 
-```{r}
-#| echo: false
-#| output: false
+## Model I: Does having a variety of average swing characteristics across players on the roster help or hurt scoring?
 
-library(tidyverse)
-library(car)
-library(pubtheme)
-```
-
-```{r}
-# url included if we wanted to use read_csv with this data from an AWS S3 bucket
-# statcast_url = "https://lances-lineups-data.s3.us-east-2.amazonaws.com/statcast_data.csv"
-statcast_data <- read.csv("data/statcast_data.csv")
-```
-
-### Question I: Does having a variety of average swing characteristics across players on the roster help or hurt scoring?
-
-#### Question IA: Does Variation in Swing Length or Swing Speed individually help a Team across a season?
+### IA: Does Variation in Swing Length or Swing Speed individually help a Team across a season?
 
 We will want to create a weighted standard deviation-like metric for a team's between-player swing style, either swing length or swing speed, variation. This will essentially be a weighted standard deviation of a team's player's average swing style for those two variables. I decide to give weight to each player by Plate Appearances, not by number of swings. This is because for a particular team, we do not want to overweight the free-swinging players just because they have more swing data. We want to consider player-team combinations, so that a player's plate appearances for a certain team are treated separately from their plate appearances for another team, if they played for multiple teams in this season for some reason. This will account for the fact that a player might change swing characteristics upon getting to a new team.
 
-First, let's create a unique ID for each Plate Appearance in `pitches`.
-
-For each at-bat, decide if the batter is on the `home_team` (if `inning_topbot` == "Bot") or the `away_team` (if `inning_topbot` == "Top"). This assignment handles trades automatically, because the data for each game has the correct home/away teams for that date.
-
-```{r}
-pitches <- statcast_data %>%
-  mutate(
-    PA_id = paste(game_pk, at_bat_number, sep="_"),
-    batter_team = ifelse(inning_topbot == "Bot", home_team, away_team)
-  )
-```
-
-At this point, a single batter can have multiple rows with different batter_team values if they switched teams mid-season. Each row corresponds to a single plate appearance.
-
-Now we define each combination (batter, batter_team) separately, so we only include that player’s PAs while on that team.
-
-```{r}
-# Each (batter, batter_team) combination with total PAs
-batter_team_pa_count <- pitches %>%
-  group_by(batter, batter_team) %>%
-  distinct(PA_id) %>%
-  summarise(total_PA_for_that_team = n(), .groups="drop") %>%
-  arrange(batter, batter_team)
-```
-
-Checking players who switched teams midway through, like Justin Turner, who had 349 PAs for Toronto along with 190 PAs for Seattle, we can see that the `batter_team_pa_count` is about correct. We get 332 and 189 PAs in our data respectively, likely due to some missing data.
 
 To get mean swing length for a player, we need to use only the rows from the times the batter was on that team. That means merging in batter_team_map so we can group by (batter, batter_team).
 
@@ -117,6 +78,8 @@ batter_team_swing_stats <- pitches %>%
     .groups="drop"
   )
 ```
+
+LEFT OFF HERE!!!
 
 For each batter-team combination, we now have the mean swing length and bat speed, along with standard deviation. We can now calculate the weighted standard deviation of swing length for each team.
 

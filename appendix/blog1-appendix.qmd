@@ -1,0 +1,535 @@
+---
+title: "Appendix: Blog Post #1"
+author: "Lance Brady"
+date: "2025-02-18"
+categories: [lineup protection, lineups, statcast]
+format: html
+editor: visual
+image: blog1.jpg
+execute:
+  eval: false
+---
+
+First, we loaded in our libraries and read the data, which contains almost every pitch from the 2024 season (excluding when poor data was retrieved).
+
+```{r}
+#| echo: false
+#| output: false
+
+library(tidyverse)
+library(lme4)
+library(lmerTest)
+library(ggeffects)
+library(car)
+library(pubtheme)
+library(baseballr)
+```
+
+```{r}
+statcast_data <- readRDS("data/statcast_all_years.rds")
+```
+
+For each plate appearance, we aggregate key variables. In this code, each plate appearance is identified by grouping on `game_pk` and `at_bat_number`, then we take the last pitch (using `which.max(pitch_number)`) to define final values for fields like `pa_xwOBA`, `pa_xBA`, and `pa_woba`. Specifically, `pa_xwOBA` is assigned the value from `estimated_woba_using_speedangle` on the last pitch, and similarly `pa_xBA` comes from `estimated_ba_using_speedangle`. We also create `pa_BA` as `1` if the `final_event` is `"single"`, `"double"`, `"triple"`, or `"home_run"`, and `pa_SLG` by mapping those same events to `1`, `2`, `3`, or `4` respectively. We compute `pitches_per_pa` via `n()`, reflecting how many pitches occurred in each plate appearance. Furthermore, we define `is_extra_base_hit` if `final_event` is `"double"`, `"triple"`, or `"home_run"`, `is_walk` if the `final_event` is `"walk"` or `"intent_walk"`, and `is_strikeout` if the `final_event` is `"strikeout"` or `"strikeout_double_play"`. Finally, the code calculates `run_diff` as the difference between `bat_score` and `fld_score` on the last pitch, capturing the score differential before the plate appearance’s outcome is officially applied.
+
+```{r}
+pa_data <- statcast_data %>%
+  group_by(game_pk, at_bat_number) %>%
+  summarize(
+    # Plate appearance identifiers and context from final pitch
+    game_year              = game_year[which.max(pitch_number)],
+    batter                 = batter[which.max(pitch_number)],
+    pitcher                = pitcher[which.max(pitch_number)],
+    inning                 = inning[which.max(pitch_number)],
+    inning_topbot          = inning_topbot[which.max(pitch_number)],
+    batter_handedness      = stand[which.max(pitch_number)],
+    outs_when_up           = outs_when_up[which.max(pitch_number)],
+    run_diff               = bat_score[which.max(pitch_number)] - fld_score[which.max(pitch_number)],
+    
+    # Final pitch values for this PA
+    pa_xwOBA               = estimated_woba_using_speedangle[which.max(pitch_number)],
+    pa_xSLG                = estimated_slg_using_speedangle[which.max(pitch_number)],
+    pa_xBA                 = estimated_ba_using_speedangle[which.max(pitch_number)],
+    pa_woba                = woba_value[which.max(pitch_number)],
+    on_1b                  = on_1b[which.max(pitch_number)],
+    on_2b                  = on_2b[which.max(pitch_number)],
+    on_3b                  = on_3b[which.max(pitch_number)],
+    final_event            = events[which.max(pitch_number)],
+
+    # Count pitches
+    pitches_per_pa         = n(),
+
+    .groups = "drop"
+  ) %>%
+  arrange(game_pk, inning, inning_topbot, at_bat_number) %>%
+  mutate(
+    # Basic batting stats
+    pa_BA  = if_else(final_event %in% c("single", "double", "triple", "home_run"), 1, 0),
+    pa_SLG = case_when(
+      final_event == "single"   ~ 1,
+      final_event == "double"   ~ 2,
+      final_event == "triple"   ~ 3,
+      final_event == "home_run" ~ 4,
+      TRUE                      ~ 0
+    ),
+    is_extra_base_hit = final_event %in% c("double", "triple", "home_run"),
+    is_walk           = final_event %in% c("walk", "intent_walk"),
+    is_strikeout      = final_event %in% c("strikeout", "strikeout_double_play")
+  )
+
+```
+
+We then find the next batter in the lineup and get their handedness. We can first organize the plate appearances by the game, then which team is hitting (derived from `inning_topbot`, and the plate appearance `at_bat_number`. Except for the last plate appearance for a team in a game, we assume that the protection is coming from the player hitting in the following plate appearance. For the last plate appearance for a team in a game, we make the `potential_next_batter` simply the batter who followed the player the previous time they came up.
+
+This even works when the last hitter (or both the last and penultimate) in the game is a pinch hitter, as we can look at the second (or third) to last hitter's previous plate appearance, then find who would be following the pinch hitter in the lineup.
+
+Note that this does not account for potential pinch hitters in the on-deck circle at the end of a game, pinch hitters who were in the on-deck circle at the time of the third out in an inning, and changes to a hitter in the middle of a plate appearance.
+
+```{r}
+pa_data <- pa_data %>%
+  ## Order by game, half-inning, and at-bat
+  arrange(game_pk, inning_topbot, at_bat_number) %>%
+  
+  ## Within each half-inning, define a naive next batter/handedness
+  group_by(game_pk, inning_topbot) %>%
+  mutate(
+    naive_next_batter                 = lead(batter),
+    naive_next_batter_handedness      = lead(batter_handedness),
+    # 2-ahead references
+    naive_next_next_batter            = lead(lead(batter)),
+    naive_next_next_batter_handedness = lead(lead(batter_handedness)),
+    # previous references
+    naive_previous_batter             = lag(batter),
+    naive_previous_batter_handedness  = lag(batter_handedness),
+    # 3-ahead references
+    naive_next_next_next_batter            = lead(lead(lead(batter))),
+    naive_next_next_next_batter_handedness = lead(lead(lead(batter_handedness))),
+    # previous-previous references
+    naive_previous_previous_batter            = lag(lag(batter)),
+    naive_previous_previous_batter_handedness = lag(lag(batter_handedness))
+  ) %>%
+  ungroup() %>%
+  
+  ## Wipe out cross-inning naive values
+  mutate(
+    same_half_inning = lead(game_pk) == game_pk & lead(inning_topbot) == inning_topbot,
+    naive_next_batter            = if_else(same_half_inning, naive_next_batter, NA_integer_),
+    naive_next_batter_handedness = if_else(same_half_inning, naive_next_batter_handedness, NA_character_)
+  ) %>%
+  
+  ## For each (game_pk, batter), fill down naive_next_batter
+  group_by(game_pk, batter) %>%
+  fill(naive_next_batter, naive_next_batter_handedness, .direction = "down") %>%
+  ungroup() %>%
+  
+  ## Fallback 1 -> Use naive_previous_batter groups
+  group_by(game_pk, naive_previous_batter) %>%
+  # Fill down naive_next_next_batter so each row in the group knows the last seen value
+  fill(naive_next_next_batter, naive_next_next_batter_handedness, .direction = "down") %>%
+  # If naive_next_batter is still NA, use the second-to-last row's naive_next_next_batter
+  mutate(
+    naive_next_batter = if_else(
+      is.na(naive_next_batter),
+      nth(naive_next_next_batter, n() - 1, default = NA_integer_),
+      naive_next_batter
+    ),
+    naive_next_batter_handedness = if_else(
+      is.na(naive_next_batter_handedness),
+      nth(naive_next_next_batter_handedness, n() - 1, default = NA_character_),
+      naive_next_batter_handedness
+    )
+  ) %>%
+  ungroup() %>%
+  
+  # If naive_next_batter is still NA, use the second-to-last row's naive_next_next_batter UNGROUPED
+  mutate(
+    naive_next_batter = if_else(
+      is.na(naive_next_batter),
+      lag(naive_next_next_batter),
+      naive_next_batter
+    ),
+    naive_next_batter_handedness = if_else(
+      is.na(naive_next_batter_handedness),
+      lag(naive_next_next_batter_handedness),
+      naive_next_batter_handedness
+    )
+  ) %>%
+  
+  ## Fallback 2 -> Use naive_previous_previous_batter groups
+  group_by(game_pk, naive_previous_previous_batter) %>%
+  # Fill down naive_next_next_batter so each row in the group knows the last seen value
+  fill(naive_next_next_next_batter, naive_next_next_next_batter_handedness, .direction = "down") %>%
+  # If naive_next_batter is still NA, use the second-to-last row's naive_next_next_batter
+  mutate(
+    naive_next_batter = if_else(
+      is.na(naive_next_batter),
+      nth(naive_next_next_next_batter, n() - 2, default = NA_integer_),
+      naive_next_batter
+    ),
+    naive_next_batter_handedness = if_else(
+      is.na(naive_next_batter_handedness),
+      nth(naive_next_next_next_batter_handedness, n() - 2, default = NA_character_),
+      naive_next_batter_handedness
+    )
+  ) %>%
+  ungroup() %>%
+  
+  # If naive_next_batter is still NA, use the third-to-last row's naive_next_next_next_batter UNGROUPED
+  mutate(
+    naive_next_batter = if_else(
+      is.na(naive_next_batter),
+      lag(lag(naive_next_next_next_batter)),
+      naive_next_batter
+    ),
+    naive_next_batter_handedness = if_else(
+      is.na(naive_next_batter_handedness),
+      lag(lag(naive_next_next_next_batter_handedness)),
+      naive_next_batter_handedness
+    )
+  ) %>%
+  
+  ## Rename & drop the extras
+  rename(
+    potential_next_batter            = naive_next_batter,
+    potential_next_batter_handedness = naive_next_batter_handedness
+  ) %>%
+  select(
+    -naive_next_next_batter,
+    -naive_next_next_batter_handedness,
+    -naive_previous_batter,
+    -naive_previous_batter_handedness,
+    -naive_next_next_next_batter,
+    -naive_next_next_next_batter_handedness,
+    -naive_previous_previous_batter,
+    -naive_previous_previous_batter_handedness
+  )
+```
+
+Let's also create a single baserunner state variable. We can simply check which of `on_1b`, `on_2b`, and `on_3b` have MLBAMIds and create strings based on that.
+
+```{r}
+pa_data <- pa_data %>%
+  mutate(
+    baserunner_state = case_when(
+      !is.na(on_1b) & is.na(on_2b) & is.na(on_3b) ~ "1B",
+      is.na(on_1b) & !is.na(on_2b) & is.na(on_3b) ~ "2B",
+      is.na(on_1b) & is.na(on_2b) & !is.na(on_3b) ~ "3B",
+      !is.na(on_1b) & !is.na(on_2b) & is.na(on_3b) ~ "1B-2B",
+      !is.na(on_1b) & is.na(on_2b) & !is.na(on_3b) ~ "1B-3B",
+      is.na(on_1b) & !is.na(on_2b) & !is.na(on_3b) ~ "2B-3B",
+      !is.na(on_1b) & !is.na(on_2b) & !is.na(on_3b) ~ "Loaded",
+      TRUE ~ "Empty"
+    )
+  )
+```
+
+For the special case in which it is a tie game with 2 outs and bases loaded in the top of the ninth inning, protection will not matter. Thus, we can take out `potential_next_batter` in those scenarios.
+
+```{r}
+pa_data <- pa_data %>%
+  mutate(
+    # If it’s bottom of the 9th+ with 2 outs, bases loaded, and the game is tied,
+    # remove the potential next batter.
+    potential_next_batter = ifelse(
+      inning_topbot == "Bot" & 
+        inning >= 9 & 
+        outs_when_up == 2 & 
+        baserunner_state == "Loaded" & 
+        run_diff == 0,
+      NA,
+      potential_next_batter
+    )
+  )
+```
+
+```{r}
+## Can just read in pa_data if you want to skip the above steps
+## pa_data = readRDS("data/pa_data.rds")
+```
+
+To get our full-season statistics, we will create custom functions to extract Statcast data using BaseballR. We first create a function `get_expected_stats_one_year` that takes in a `year` value and `min_pa` value and outputs a dataframe with each player's—those that had the minimum plate appearances—expected statistics for that year. We chose 200 plate appearances, which is just 40% of the number of plate appearances needed to be qualified for that year, as a player's true value should stabilize around that many plate appearances, and we did not want to cut out too much data. We then use `get_expected_stats_all_years` to get expected statistics across all years of Statcast data (2015-2024).
+
+```{r}
+get_expected_stats_one_year <- function(year, min_pa = 200) {
+  # Scrape the "expected_statistics" leaderboard for one season
+  # with a minimum PA (e.g. 200).
+  df <- statcast_leaderboards(
+    leaderboard = "expected_statistics",
+    year = year,
+    min_pa = min_pa,   # 200
+    player_type = "batter"
+  )
+  
+  # Keep only relevant columns & rename them.
+  # The returned columns may include more, but these are typical:
+  # "year", "player_id", "pa", "bip", "ba", "est_ba", "slg",
+  # "est_slg", "woba", "est_woba", etc.
+  df <- df %>%
+    select(
+      year,
+      player_id,
+      pa,
+      ba,
+      est_ba,
+      slg,
+      est_slg,
+      woba,
+      est_woba
+      # if you want more columns, add them here
+    ) %>%
+    rename(
+      game_year    = year,      # aligns with pa_data's "game_year"
+      batter_id    = player_id, # aligns with pa_data's "batter" ID
+      batter_PA    = pa,
+      batter_BA    = ba,
+      batter_xBA   = est_ba,
+      batter_SLG   = slg,
+      batter_xSLG  = est_slg,
+      batter_wOBA  = woba,
+      batter_xwOBA = est_woba
+    )
+  
+  return(df)
+}
+
+get_expected_stats_all_years <- function(start_year, end_year, min_pa = 200) {
+  
+  # Loop over each year, scrape the leaderboard, store results
+  all_stats <- lapply(seq(start_year, end_year), function(yr) {
+    message("Scraping year: ", yr)
+    get_expected_stats_one_year(year = yr, min_pa = min_pa)
+  })
+  
+  # Combine all into one data frame
+  all_stats_df <- bind_rows(all_stats)
+  
+  return(all_stats_df)
+}
+```
+
+Then, once we put all years of batting statistics into a dataframe titled `batter_stats_all`, we will add it to our plate appearance-level data `pa_data` for both the current batter of each row and the next batter. We will only keep rows for which the next batter has followed the current batter for at least 40 plate appearances. We will remove rows for which there are not complete statistics.
+
+```{r}
+## Get all years of batting stats from 2015-2024
+batter_stats_all <- get_expected_stats_all_years(2015, 2024, min_pa = 200)
+
+## Join with pa_data for current & next batters
+pa_data_with_batter <- pa_data %>%
+  left_join(batter_stats_all, by = c("game_year", "batter" = "batter_id"))
+
+next_batter_stats_all <- batter_stats_all %>%
+  rename(
+    next_batter_PA    = batter_PA,
+    next_batter_BA    = batter_BA,
+    next_batter_xBA   = batter_xBA,
+    next_batter_SLG   = batter_SLG,
+    next_batter_xSLG  = batter_xSLG,
+    next_batter_wOBA  = batter_wOBA,
+    next_batter_xwOBA = batter_xwOBA
+  )
+
+pa_data_with_both <- pa_data_with_batter %>%
+  left_join(next_batter_stats_all, by = c("game_year", 
+                                          "potential_next_batter" = "batter_id"))
+
+## Filter pairs with >= 40 PAs
+pa_data_with_both <- pa_data_with_both %>%
+  group_by(game_year, batter, potential_next_batter) %>%
+  mutate(combo_count = n()) %>%
+  ungroup() %>%
+  filter(combo_count >= 40) %>%
+  select(-combo_count)
+
+## Remove rows with missing season stats
+pa_data_final <- pa_data_with_both %>%
+  filter(
+    !is.na(batter_xwOBA) & !is.na(batter_xSLG) & !is.na(batter_xBA) &
+    !is.na(batter_wOBA) & !is.na(batter_BA) & !is.na(batter_SLG) &
+    !is.na(next_batter_xwOBA) &
+    !is.na(next_batter_xSLG) &
+    !is.na(next_batter_xBA) &
+    !is.na(next_batter_wOBA) &
+    !is.na(next_batter_BA) &
+    !is.na(next_batter_SLG)
+  )
+```
+
+We need four more columns: `walk_rate` (BB%), `strikeout_rate` (K%), `xbh_rate` (XBH%), and `pitches_per_pa` (P/PA).
+
+We will get `walk_rate` and `strikeout_rate` from Fangraphs Leaderbaords using BaseballR, and find `xbh_rate` and `pitches_per_pa` manually using our `pa_data` dataset.
+
+First, we can get `xbh_rate` and `pitches_per_pa` manually.
+
+```{r}
+pa_extra_metrics <- pa_data %>%
+  group_by(game_year, batter) %>%
+  summarize(
+    xbh_rate = mean(is_extra_base_hit, na.rm = TRUE),  # extra-base hit rate
+    pitches_per_pa = mean(pitches_per_pa, na.rm = TRUE),    # pitches per plate appearance
+    .groups = "drop"
+  ) %>%
+  mutate(game_year = factor(game_year), batter = factor(batter))
+
+## Join to add current batter's extra metrics.
+pa_data_final <- pa_data_final %>%
+  left_join(
+    pa_extra_metrics %>% 
+      select(game_year, batter, xbh_rate, pitches_per_pa) %>%
+      rename(
+        batter_xbh_rate    = xbh_rate,
+        batter_pitches_per_pa = pitches_per_pa
+      ),
+    by = c("game_year", "batter")
+  )
+
+## Join to add next batter's extra metrics.
+pa_data_final <- pa_data_final %>%
+  mutate(
+    potential_next_batter = as.factor(potential_next_batter)
+  ) %>%
+  left_join(
+    pa_extra_metrics %>% 
+      select(game_year, batter, xbh_rate, pitches_per_pa) %>%
+      rename(
+        next_batter_xbh_rate    = xbh_rate,
+        next_batter_pitches_per_pa = pitches_per_pa
+      ),
+    by = c("game_year", "potential_next_batter" = "batter")
+  )
+```
+
+Let's also get our `walk_rate` and `strikeout_rate` using BaseballR.
+
+```{r}
+## Function to get FanGraphs BB% and K% for qualified batters 
+## from start_season to end_season (inclusive)
+
+get_fg_batter_rates <- function(start_season, end_season) {
+  # Create a vector of seasons as characters
+  seasons <- as.character(seq(start_season, end_season))
+  
+  # Loop over each season and scrape the batter leaderboard
+  fg_data_list <- lapply(seasons, function(season) {
+    message("Scraping FanGraphs batter leaders for season: ", season)
+    df <- fg_batter_leaders(
+      startseason = season,
+      endseason = season,
+      qual = "y",      # Only qualified hitters
+      ind = "1",       # Split seasons individually
+      pageitems = "10000"
+    )
+    # Select only the columns we need.
+    df %>% 
+      select(Season, xMLBAMID, BB_pct, K_pct)
+  })
+  
+  # Bind rows together from all seasons
+  fg_data_all <- bind_rows(fg_data_list)
+  
+  # Rename Season to game_year, convert to numeric, and convert xMLBAMID to factor
+  fg_data_all <- fg_data_all %>%
+    rename(game_year = Season) %>%
+    mutate(
+      game_year = as.numeric(game_year),
+      xMLBAMID = as.factor(xMLBAMID)
+    )
+  
+  return(fg_data_all)
+}
+
+## Get FanGraphs batter rates for all seasons 2015-2024
+fg_rates_all <- get_fg_batter_rates(2015, 2024) %>%
+  mutate(game_year = as.factor(game_year), xMLBAMID = as.factor(xMLBAMID))
+
+## Join the scraped FanGraphs rates into pa_data_final
+# Join current batter rates.
+pa_data_final <- pa_data_final %>%
+  # Make batter and potential_next_batter into factors
+  mutate(
+    batter = as.factor(batter),
+    potential_next_batter = as.factor(potential_next_batter)
+  ) %>%
+  left_join(
+    fg_rates_all,
+    by = c("game_year", "batter" = "xMLBAMID")
+  ) %>%
+  rename(
+    batter_bb_pct = BB_pct,
+    batter_k_pct  = K_pct
+  )
+
+# Join next batter rates.
+pa_data_final <- pa_data_final %>%
+  left_join(
+    fg_rates_all,
+    by = c("game_year", "potential_next_batter" = "xMLBAMID")
+  ) %>%
+  rename(
+    next_batter_bb_pct = BB_pct,
+    next_batter_k_pct  = K_pct
+  )
+```
+
+Next, we'll add columns for `xwOBA_diff`, `xBA_diff`, and `xSLG_diff`, which are the differences between the current batter's xwOBA, xBA, and xSLG and the plate appearance's xwOBA, xBA, and xSLG.
+
+```{r}
+# Calculate differences
+pa_data_final <- pa_data_final %>%
+  mutate(
+    xwOBA_diff = pa_xwOBA - batter_xwOBA,
+    xBA_diff   = pa_xBA - batter_xBA,
+    xSLG_diff  = pa_xSLG - batter_xSLG
+  )
+```
+
+The last thing we will do is ensure that all of the variables we expect to act non-linearly are factors for our models. Also, we will relevel the `baserunner_state` variable to make "Empty" the reference level.
+
+```{r}
+# Convert certain variables to factors
+pa_data_final$batter_handedness <- factor(pa_data_final$batter_handedness)
+pa_data_final$potential_next_batter_handedness <- factor(pa_data_final$potential_next_batter_handedness)
+pa_data_final$batter <- factor(pa_data_final$batter)
+pa_data_final$pitcher <- factor(pa_data_final$pitcher)
+pa_data_final$baserunner_state <- factor(pa_data_final$baserunner_state)
+pa_data_final$inning <- factor(pa_data_final$inning)
+pa_data_final$game_year <- factor(pa_data_final$game_year)
+
+pa_data_final$baserunner_state <- relevel(pa_data_final$baserunner_state, ref = "Empty")
+```
+
+After initial modeling, we'd like to add the pitcher's handedness to our dataset. We can do this by matching the `game_pk` and `at_bat_number` of the plate appearance with the same values in the `statcast_all_years` dataframe. This will give us the pitcher's handedness for each plate appearance. We'd also like to create a new variable that indicates the handedness matchup between the current batter and pitcher, as well as the potential next batter and pitcher.
+
+```{r}
+pa_data_final$pitcher_handedness <- statcast_all_years$p_throws[match(paste(pa_data_final$game_pk, pa_data_final$at_bat_number),
+                                                                 paste(statcast_all_years$game_pk, statcast_all_years$at_bat_number))]
+
+# Define factor variables with clear reference categories
+pa_data_final <- pa_data_final %>%
+  mutate(
+    handedness_matchup = factor(
+      paste0(batter_handedness, "_vs_", pitcher_handedness),
+      levels = c("R_vs_R", "L_vs_R", "R_vs_L", "L_vs_L")
+    ),
+    next_handedness_matchup = factor(
+      paste0(potential_next_batter_handedness, "_vs_", pitcher_handedness),
+      levels = c("R_vs_R", "L_vs_R", "R_vs_L", "L_vs_L")
+    )
+  )
+
+pa_data_final <- pa_data_final %>%
+  mutate(
+    handedness_matchup = relevel(factor(handedness_matchup), ref = "R_vs_R"),
+    next_handedness_matchup = relevel(factor(next_handedness_matchup), ref = "R_vs_R")
+  )
+```
+
+However, when we incorporate `handedness_matchup` and `next_handedness_matchup` into the model, we get a warning that the fixed-effect model matrix is rank deficient. This is because So we know: `batter_handedness`, `potential_next_batter_handedness`, and `pitcher_handedness`, so `handedness_matchup` and `next_handedness_matchup` are not independent. The model can't tell what effects belong to which matchup cleanly without creating overlap. Instead, we can create two new variables: `current_matchup_advantage` and `next_matchup_advantage`. These will be `1` if the batter's handedness is opposite to the pitcher's handedness, and `0` otherwise. This way, we can still capture the matchup effects without creating a rank deficiency.
+
+```{r}
+pa_data_final <- pa_data_final %>%
+  mutate(
+    current_matchup_advantage = if_else(batter_handedness != pitcher_handedness, 1, 0),
+    next_matchup_advantage    = if_else(potential_next_batter_handedness != pitcher_handedness, 1, 0)
+  )
+```
+
+This is our final `pa_data_final` dataset that we can load in for model analysis.

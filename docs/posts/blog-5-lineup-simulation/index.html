@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lance Brady">
-<meta name="dcterms.date" content="2025-03-05">
+<meta name="dcterms.date" content="2025-04-16">
 
-<title>Blog Post #3: Baserunning – Lance’s Lineups</title>
+<title>Blog Post #5: Lineup Simulations – Lance’s Lineups</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -21,40 +21,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -153,7 +119,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Blog Post #3: Baserunning</h1>
+      <h1 class="title">Blog Post #5: Lineup Simulations</h1>
                                 <div class="quarto-categories">
                 <div class="quarto-category">baserunning</div>
                 <div class="quarto-category">lineups</div>
@@ -175,7 +141,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">March 5, 2025</p>
+        <p class="date">April 16, 2025</p>
       </div>
     </div>
     
@@ -194,137 +160,34 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<section id="takeaways" class="level1">
-<h1>Takeaways</h1>
-<ol type="1">
-<li></li>
-</ol>
-<section id="introduction-to-baserunning" class="level2">
-<h2 class="anchored" data-anchor-id="introduction-to-baserunning">Introduction to Baserunning</h2>
-<p>As Statcast expands the data they are able to collect and parse through, one big innovation is the creation of “Baserunning Runs,” which aims to estimate the number of runs a player is creating through baserunning alone. Statcast defines it as follows:</p>
-<p>“A Statcast metric designed to express the overall value of a baserunner, measured in runs created (or lost) via stealing bases and taking extra bases on the basepaths. Each steal opportunity is assigned a probability of being successful or not, based on the pitcher and catcher the basestealer is running against. Each successful or failed steal attempt is assigned a run value, with a stolen base or advance via a balk worth +0.2 runs for the baserunner and a caught stealing or pickoff worth -0.45 runs. For non-steal baserunning plays, an estimated success probability is generated for each opportunity using inputs that include runner speed, outfielder throwing arm, runner position on the basepaths and outfielder distance from both the ball and the bases. That can be translated to a run value based on whether the runner successfully takes the extra base, is thrown out or does not attempt to advance (holds).” (MLB, 2025)</p>
-<p>A player’s speed is only as useful as they make it, so lineup construction analysis, which often references the need for speed at the top and bottom of the order, would benefit from using this advanced data. Managers no longer have to use sprint speed to proxy a player’s value on the basepaths, they can use a player’s true baserunning value.</p>
-<p>It is worth noting that the MLB opted for bigger bases in 2023 to increase action on the basepaths. This means that although Statcast has baserunning data going back to 2016, we will focus on just the 2023 and 2024 seasons to make our analysis more applicable to future seasons.</p>
+<section id="takeaways" class="level2">
+<h2 class="anchored" data-anchor-id="takeaways">Takeaways</h2>
+</section>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
 </section>
 <section id="aim" class="level2">
 <h2 class="anchored" data-anchor-id="aim">Aim</h2>
-<p>This article aims to answer a couple of questions about the role baserunning has in lineup construction. We’d like to answer the following research questions, which focus on distinct parts of baserunner effects within the game:</p>
-<ol type="1">
-<li>Does having a perceived (and measured) speed threat on base lead to measurable changes in pitch selection or velocity, and does that in turn correlate with better offensive outcomes?</li>
-<li>What is the optimal positioning of baserunning value within a lineup? Is it better to cluster speedy players consecutively (for multiple stolen bases or first-to-third attempts in an inning) or to spread them out to maximize the impact in different segments of the lineup?</li>
-<li>Since 2023, how well have managers optimized their team’s speed in their lineups?</li>
-</ol>
 </section>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<p>To answer Question #1, we will need two datasets: Statcast pitch-by-pitch data for all of 2023/2024 and Statcast Baserunning data for the same seasons.</p>
 </section>
 <section id="methods" class="level2">
 <h2 class="anchored" data-anchor-id="methods">Methods</h2>
-<p>For full methods and model outputs <a href="../../appendix/blog3-appendix.html">view the full appendix here</a>.</p>
 </section>
-<section id="model-1-pitcher-behavior" class="level2">
-<h2 class="anchored" data-anchor-id="model-1-pitcher-behavior">Model #1: Pitcher Behavior</h2>
-<p>To do models on pitcher behavior, we will need a new statcast dataframe that incorporates the baserunning data. We will create a new dataframe, <code>statcast_data_baserunning</code>, that contains the same columns as <code>statcast_data</code> but with the addition of the <code>pa_runner_average_value</code> column.</p>
-<section id="pitch-velocity-with-speed-on-base" class="level3">
-<h3 class="anchored" data-anchor-id="pitch-velocity-with-speed-on-base">Pitch Velocity with Speed on Base</h3>
-<p>Our first model will be a mixed-effects model studying how fast pitchers throw with different on-base variations.</p>
-<div class="cell">
-<details class="code-fold">
-<summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>statcast_data_baserunning <span class="ot">=</span> <span class="fu">readRDS</span>(<span class="st">"data/statcast_data_baserunning.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
-<div class="cell">
-<details class="code-fold">
-<summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>model_vel <span class="ot">&lt;-</span> <span class="fu">lmer</span>(</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  release_speed <span class="sc">~</span> first_base_runner_value <span class="sc">+</span> second_base_runner_value <span class="sc">+</span> third_base_runner_value <span class="sc">+</span> run_diff <span class="sc">+</span> outs_when_up <span class="sc">+</span> baserunner_state <span class="sc">+</span> <span class="fu">factor</span>(balls) <span class="sc">+</span> <span class="fu">factor</span>(strikes) <span class="sc">+</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">|</span> pitcher),</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> statcast_data_baserunning</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_vel)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
-</section>
-<section id="pitch-location-with-speed-on-base" class="level3">
-<h3 class="anchored" data-anchor-id="pitch-location-with-speed-on-base">Pitch Location with Speed on Base</h3>
-<p>Our next model will be a mixed-effects model studying how pitchers locate with different on-base variations.</p>
-<div class="cell">
-<details class="code-fold">
-<summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>model_location <span class="ot">&lt;-</span> <span class="fu">lmer</span>(</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  plate_z <span class="sc">~</span> first_base_runner_value <span class="sc">+</span> second_base_runner_value <span class="sc">+</span> third_base_runner_value <span class="sc">+</span> run_diff <span class="sc">+</span> outs_when_up <span class="sc">+</span> baserunner_state <span class="sc">+</span> <span class="fu">factor</span>(balls) <span class="sc">+</span> <span class="fu">factor</span>(strikes) <span class="sc">+</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">|</span> pitcher),</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> statcast_data_baserunning</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_location)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
-</section>
-<section id="pitch-selection-with-speed-on-base" class="level3">
-<h3 class="anchored" data-anchor-id="pitch-selection-with-speed-on-base">Pitch Selection with Speed on Base</h3>
-<p>If you want to see whether pitchers throw more fastballs with speed on base, we can define a binary:</p>
-<div class="cell">
-<details class="code-fold">
-<summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>statcast_data_baserunning <span class="ot">&lt;-</span> statcast_data_baserunning <span class="sc">%&gt;%</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">is_fastball =</span> <span class="fu">if_else</span>(</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>      pitch_type <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"FF"</span>,<span class="st">"FA"</span>,<span class="st">"FT"</span>,<span class="st">"SI"</span>,<span class="st">"FC"</span>), <span class="dv">1</span>, <span class="dv">0</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="er">)</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit logistic mixed model</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>model_pitch_select <span class="ot">&lt;-</span> <span class="fu">glmer</span>(</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  is_fastball <span class="sc">~</span> first_base_runner_value <span class="sc">+</span> second_base_runner_value <span class="sc">+</span> third_base_runner_value <span class="sc">+</span> run_diff <span class="sc">+</span> outs_when_up <span class="sc">+</span> baserunner_state <span class="sc">+</span> <span class="fu">factor</span>(balls) <span class="sc">+</span> <span class="fu">factor</span>(strikes) <span class="sc">+</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">|</span> pitcher), </span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> statcast_data_baserunning,</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">binomial</span>(<span class="at">link =</span> <span class="st">"logit"</span>)</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_pitch_select)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
-</section>
-</section>
-<section id="model-2-offensive-perfornance-with-speed-on-base-expand-on-these" class="level2">
-<h2 class="anchored" data-anchor-id="model-2-offensive-perfornance-with-speed-on-base-expand-on-these">Model #2: Offensive Perfornance with Speed on Base (EXPAND ON THESE)</h2>
-<p>Next, we need to get PA-level data to analyze the impact of speed on base on offensive performance. Now that we have the speed on base for each pitch, we can aggregate this to the PA level to get the total speed on base for each PA.</p>
-<div class="cell">
-<details class="code-fold">
-<summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>m_speed <span class="ot">=</span> <span class="fu">lmer</span>(pa_xwOBA <span class="sc">~</span> batter_xwOBA <span class="sc">+</span> pa_runner_average_value <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> pitcher),</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>             <span class="at">data =</span> pa_data_final)</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_speed)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>m_speed <span class="ot">&lt;-</span> <span class="fu">lmer</span>(</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  pa_xwOBA <span class="sc">~</span> batter_xwOBA <span class="sc">+</span> next_batter_xwOBA <span class="sc">+</span> </span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    batter_handedness <span class="sc">+</span> potential_next_batter_handedness <span class="sc">+</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    outs_when_up <span class="sc">+</span> run_diff <span class="sc">+</span> baserunner_state <span class="sc">*</span> first_base_runner_value <span class="sc">+</span> baserunner_state <span class="sc">*</span> second_base_runner_value <span class="sc">+</span> baserunner_state <span class="sc">*</span> third_base_runner_value <span class="sc">+</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">|</span> pitcher),</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_data_final</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_speed)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
+<section id="analysis" class="level2">
+<h2 class="anchored" data-anchor-id="analysis">Analysis</h2>
 </section>
 <section id="visualizations" class="level2">
 <h2 class="anchored" data-anchor-id="visualizations">Visualizations</h2>
-<p>INSERT VISUALIZATIONS</p>
 </section>
 <section id="discussion" class="level2">
 <h2 class="anchored" data-anchor-id="discussion">Discussion</h2>
-<p>INSERT DISCUSSION</p>
 </section>
 <section id="references" class="level2">
 <h2 class="anchored" data-anchor-id="references">References</h2>
-<p>INSERT REFERENCES</p>
 
 
-</section>
 </section>
 
 </main> <!-- /main -->
