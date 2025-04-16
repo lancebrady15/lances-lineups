@@ -2,7 +2,7 @@
 title: "Blog Post #5: Lineup Simulations"
 author: "Lance Brady"
 date: "2025-04-16"
-categories: [baserunning, lineups, statcast]
+categories: [simulation, lineups, statcast]
 format: html
 editor: visual
 image: blog5.jpeg

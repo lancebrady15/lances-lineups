@@ -9,7 +9,7 @@
 <meta name="author" content="Lance Brady">
 <meta name="dcterms.date" content="2025-02-18">
 
-<title>Blog Post #1: Lineup Protection or Lineup Penalty – Lance’s Lineups</title>
+<title>Blog Post #1: Lineup Protection or Lineup Penalty? – Lance’s Lineups</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -182,7 +182,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Blog Post #1: Lineup Protection or Lineup Penalty</h1>
+      <h1 class="title">Blog Post #1: Lineup Protection or Lineup Penalty?</h1>
                                 <div class="quarto-categories">
                 <div class="quarto-category">lineup protection</div>
                 <div class="quarto-category">lineups</div>
@@ -387,48 +387,49 @@ pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA + current_matchup_advantage +
     run_diff + game_year + (1 | pitcher)
    Data: pa_data_final
 
-REML criterion at convergence: 660744.5
+REML criterion at convergence: 741757.7
 
 Scaled residuals: 
     Min      1Q  Median      3Q     Max 
--1.3714 -0.7743 -0.3857  0.7199  4.7175 
+-1.3711 -0.7738 -0.3856  0.7186  4.7365 
 
 Random effects:
  Groups   Name        Variance  Std.Dev.
- pitcher  (Intercept) 0.0005352 0.02313 
- Residual             0.1470937 0.38353 
-Number of obs: 715653, groups:  pitcher, 2212
+ pitcher  (Intercept) 0.0005167 0.02273 
+ Residual             0.1460217 0.38213 
+Number of obs: 809909, groups:  pitcher, 2358
 
 Fixed effects:
                             Estimate Std. Error         df t value Pr(&gt;|t|)    
-(Intercept)                3.143e-03  5.415e-03  4.286e+05   0.580  0.56162    
-batter_xwOBA               1.020e+00  1.219e-02  7.156e+05  83.644  &lt; 2e-16 ***
-next_batter_xwOBA         -3.042e-02  1.261e-02  7.155e+05  -2.413  0.01583 *  
-current_matchup_advantage  1.966e-02  9.643e-04  4.498e+05  20.391  &lt; 2e-16 ***
-next_matchup_advantage     6.010e-04  9.671e-04  4.205e+05   0.621  0.53434    
-baserunner_state1B         1.144e-03  1.223e-03  7.155e+05   0.936  0.34937    
-baserunner_state1B-2B      1.024e-03  1.900e-03  7.156e+05   0.539  0.59017    
-baserunner_state1B-3B      6.660e-03  2.830e-03  7.156e+05   2.354  0.01858 *  
-baserunner_state2B         8.328e-03  1.722e-03  7.155e+05   4.837 1.32e-06 ***
-baserunner_state2B-3B      3.512e-03  3.251e-03  7.155e+05   1.080  0.27995    
-baserunner_state3B         5.001e-03  2.888e-03  7.155e+05   1.731  0.08337 .  
-baserunner_stateLoaded     1.002e-03  3.129e-03  7.149e+05   0.320  0.74884    
-outs_when_up              -4.564e-03  5.724e-04  7.153e+05  -7.973 1.55e-15 ***
-run_diff                   6.880e-04  1.526e-04  4.994e+05   4.509 6.50e-06 ***
-game_year2017              1.094e-03  1.825e-03  3.261e+05   0.599  0.54896    
-game_year2018              8.712e-04  1.872e-03  1.702e+05   0.465  0.64168    
-game_year2019              5.813e-03  1.967e-03  1.231e+05   2.955  0.00313 ** 
-game_year2020              3.715e-04  3.224e-03  3.075e+05   0.115  0.90825    
-game_year2021              4.102e-03  1.979e-03  6.594e+04   2.073  0.03820 *  
-game_year2022              5.015e-03  1.995e-03  4.980e+04   2.513  0.01197 *  
-game_year2023              5.837e-03  1.974e-03  3.703e+04   2.957  0.00311 ** 
-game_year2024              5.295e-03  2.026e-03  2.890e+04   2.614  0.00896 ** 
+(Intercept)               -6.786e-05  4.986e-03  4.402e+05  -0.014 0.989140    
+batter_xwOBA               1.020e+00  1.128e-02  8.098e+05  90.401  &lt; 2e-16 ***
+next_batter_xwOBA         -2.742e-02  1.170e-02  8.097e+05  -2.344 0.019074 *  
+current_matchup_advantage  2.001e-02  9.017e-04  5.310e+05  22.191  &lt; 2e-16 ***
+next_matchup_advantage     8.058e-04  9.045e-04  4.962e+05   0.891 0.372992    
+baserunner_state1B         1.595e-03  1.147e-03  8.097e+05   1.390 0.164438    
+baserunner_state1B-2B      1.960e-03  1.781e-03  8.098e+05   1.100 0.271155    
+baserunner_state1B-3B      6.192e-03  2.639e-03  8.098e+05   2.346 0.018970 *  
+baserunner_state2B         7.951e-03  1.612e-03  8.098e+05   4.933 8.10e-07 ***
+baserunner_state2B-3B      3.182e-03  3.054e-03  8.098e+05   1.042 0.297390    
+baserunner_state3B         4.995e-03  2.690e-03  8.097e+05   1.857 0.063292 .  
+baserunner_stateLoaded     1.820e-03  2.937e-03  8.092e+05   0.620 0.535527    
+outs_when_up              -4.443e-03  5.360e-04  8.096e+05  -8.288  &lt; 2e-16 ***
+run_diff                   6.541e-04  1.435e-04  5.644e+05   4.559 5.15e-06 ***
+game_year2016              2.664e-03  1.800e-03  3.502e+05   1.480 0.138963    
+game_year2017              3.513e-03  1.872e-03  2.067e+05   1.877 0.060501 .  
+game_year2018              3.275e-03  1.904e-03  1.401e+05   1.721 0.085344 .  
+game_year2019              7.899e-03  1.996e-03  1.154e+05   3.958 7.57e-05 ***
+game_year2020              2.297e-03  3.233e-03  3.128e+05   0.710 0.477489    
+game_year2021              6.133e-03  2.001e-03  6.650e+04   3.064 0.002183 ** 
+game_year2022              6.765e-03  2.009e-03  5.118e+04   3.367 0.000760 ***
+game_year2023              7.512e-03  1.994e-03  3.849e+04   3.768 0.000165 ***
+game_year2024              6.872e-03  2.039e-03  3.030e+04   3.371 0.000751 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>
-Correlation matrix not shown by default, as p = 22 &gt; 12.
+Correlation matrix not shown by default, as p = 23 &gt; 12.
 Use print(x, correlation=TRUE)  or
     vcov(x)        if you need it</code></pre>
 </div>
@@ -437,7 +438,7 @@ Use print(x, correlation=TRUE)  or
 <p>When accounting for all of the other variables, we can see that the coefficient of <code>next_batter_xwOBA</code> is negative, at -0.02742, and signficant at the <span class="math inline">\(\alpha\)</span> = 0.05 level, with a p-value of 0.02.</p>
 <p>This coefficient means that with a 0.100 increase in the next batter’s xwOBA, we would expect a 0.0027 decrease in the current plate appearance’s xwOBA. This is a small effect, but it is statistically significant and suggests that a reverse lineup protection, or a lineup penalty does exist to some degree when a better hitter is on deck.</p>
 <p>We do not find that a matchup advantage on deck has a significant impact on the current plate appearance’s xwOBA, with a coefficient of 0.0008 and a p-value of 0.37.</p>
-<p>While we will want to use model selection techniques to check if all of these variables are important, other signficant coefficients make sense. The only two <code>baserunner_state</code> with a singificant coefficient is when a runner is on 2B, with a positive coefficient of 0.008, or 1B and 3B, with a postivie coefficient of 0.006 indicating that having a runner on 2B or 1B-3B increases the xwOBA of the current plate appearance. The <code>outs_when_up</code> variable has a negative and signficiant coefficient, indicating that having more outs when up decreases the xwOBA of the current plate appearance. The <code>run_diff</code> variable has a positive and signficant coefficient, indicating that having a larger run differential increases the xwOBA of the current plate appearance. This could indicate that when teams are up by a lot, they tend to be facing weaker pitchers, or have a confidence that helps them at the plate. Overall, this effect is incredibly small. <code>game_year</code> also makes sense, as the most signficant positive coefficeints in years 2019, 2021, 2022, 2023, and 2024 were all years with higher run scoring environments than the reference level of 2015.</p>
+<p>While we will want to use model selection techniques to check if all of these variables are important, other signficant coefficients make sense. The only two <code>baserunner_state</code> with a singificant coefficient is when a runner is on 2B, with a positive coefficient of 0.008, or 1B and 3B, with a postivie coefficient of 0.006 indicating that having a runner on 2B or 1B-3B increases the xwOBA of the current plate appearance. The <code>outs_when_up</code> variable has a negative and signficiant coefficient, indicating that having more outs when up decreases the xwOBA of the current plate appearance. The <code>run_diff</code> variable has a positive and significant coefficient, indicating that having a larger run differential increases the xwOBA of the current plate appearance. This could indicate that when teams are up by a lot, they tend to be facing weaker pitchers, or have a confidence that helps them at the plate. Overall, this effect is incredibly small. <code>game_year</code> also makes sense, as the most signficant positive coefficeints in years 2019, 2021, 2022, 2023, and 2024 were all years with higher run scoring environments than the reference level of 2015.</p>
 <p>Let’s check this model with a mixed-effects linear model of plate appearances, where we will use the xwOBA difference of the current plate appearance from the batter’s season long average as the outcome variable. We will use the xwOBA of the next batter as our main independent variable, and we will also include the batter’s handedness, the next batter’s handedness, the baserunner state, outs when up, run differential, and game year as fixed effects. We will also include random effects for pitcher.</p>
 <p>It is worth noting that initially we got a singularity with regards to the random effect <code>(1 | batter)</code> when it was included. This indicated that the model already had the effect of the batter baked into the model through the <code>xwOBA_diff</code> outcome variable, which is derived from <code>pa_xwOBA</code> and <code>batter_xwOBA</code>. So, we knew that almost all of the variance between batters can be accounted for by their season-long <code>batter_xwOBA</code>.</p>
 <div class="cell">
@@ -461,47 +462,48 @@ Formula: xwOBA_diff ~ next_batter_xwOBA + current_matchup_advantage +
     run_diff + game_year + (1 | pitcher)
    Data: pa_data_final
 
-REML criterion at convergence: 660740.1
+REML criterion at convergence: 741753.7
 
 Scaled residuals: 
     Min      1Q  Median      3Q     Max 
--1.3639 -0.7748 -0.3861  0.7209  4.7122 
+-1.3634 -0.7742 -0.3862  0.7195  4.7311 
 
 Random effects:
  Groups   Name        Variance  Std.Dev.
- pitcher  (Intercept) 0.0005351 0.02313 
- Residual             0.1470941 0.38353 
-Number of obs: 715653, groups:  pitcher, 2212
+ pitcher  (Intercept) 0.0005166 0.02273 
+ Residual             0.1460221 0.38213 
+Number of obs: 809909, groups:  pitcher, 2358
 
 Fixed effects:
                             Estimate Std. Error         df t value Pr(&gt;|t|)    
-(Intercept)                7.947e-03  4.521e-03  3.092e+05   1.758  0.07880 .  
-next_batter_xwOBA         -2.535e-02  1.221e-02  7.156e+05  -2.076  0.03787 *  
-current_matchup_advantage  1.961e-02  9.637e-04  4.503e+05  20.345  &lt; 2e-16 ***
-next_matchup_advantage     5.899e-04  9.671e-04  4.206e+05   0.610  0.54189    
-baserunner_state1B         1.178e-03  1.223e-03  7.155e+05   0.963  0.33534    
-baserunner_state1B-2B      1.049e-03  1.900e-03  7.156e+05   0.552  0.58103    
-baserunner_state1B-3B      6.685e-03  2.829e-03  7.156e+05   2.362  0.01816 *  
-baserunner_state2B         8.346e-03  1.722e-03  7.155e+05   4.847 1.25e-06 ***
-baserunner_state2B-3B      3.479e-03  3.251e-03  7.155e+05   1.070  0.28443    
-baserunner_state3B         5.011e-03  2.888e-03  7.155e+05   1.735  0.08277 .  
-baserunner_stateLoaded     9.891e-04  3.129e-03  7.149e+05   0.316  0.75194    
-outs_when_up              -4.562e-03  5.724e-04  7.153e+05  -7.970 1.59e-15 ***
-run_diff                   6.922e-04  1.526e-04  4.996e+05   4.538 5.69e-06 ***
-game_year2017              1.146e-03  1.825e-03  3.260e+05   0.628  0.53018    
-game_year2018              8.636e-04  1.872e-03  1.702e+05   0.461  0.64458    
-game_year2019              5.929e-03  1.966e-03  1.229e+05   3.016  0.00256 ** 
-game_year2020              5.667e-04  3.221e-03  3.070e+05   0.176  0.86036    
-game_year2021              4.182e-03  1.978e-03  6.583e+04   2.114  0.03451 *  
-game_year2022              4.895e-03  1.994e-03  4.972e+04   2.455  0.01411 *  
-game_year2023              5.861e-03  1.974e-03  3.702e+04   2.969  0.00299 ** 
-game_year2024              5.210e-03  2.025e-03  2.887e+04   2.572  0.01011 *  
+(Intercept)                4.685e-03  4.192e-03  3.107e+05   1.118 0.263711    
+next_batter_xwOBA         -2.224e-02  1.132e-02  8.099e+05  -1.964 0.049480 *  
+current_matchup_advantage  1.995e-02  9.010e-04  5.317e+05  22.139  &lt; 2e-16 ***
+next_matchup_advantage     7.917e-04  9.044e-04  4.965e+05   0.875 0.381370    
+baserunner_state1B         1.633e-03  1.147e-03  8.097e+05   1.423 0.154655    
+baserunner_state1B-2B      1.990e-03  1.781e-03  8.098e+05   1.117 0.263913    
+baserunner_state1B-3B      6.218e-03  2.639e-03  8.098e+05   2.356 0.018474 *  
+baserunner_state2B         7.969e-03  1.612e-03  8.098e+05   4.944 7.65e-07 ***
+baserunner_state2B-3B      3.147e-03  3.054e-03  8.098e+05   1.031 0.302774    
+baserunner_state3B         5.007e-03  2.690e-03  8.097e+05   1.862 0.062659 .  
+baserunner_stateLoaded     1.806e-03  2.937e-03  8.092e+05   0.615 0.538656    
+outs_when_up              -4.439e-03  5.360e-04  8.096e+05  -8.281  &lt; 2e-16 ***
+run_diff                   6.577e-04  1.435e-04  5.646e+05   4.584 4.56e-06 ***
+game_year2016              2.747e-03  1.800e-03  3.498e+05   1.526 0.126944    
+game_year2017              3.649e-03  1.870e-03  2.062e+05   1.951 0.051045 .  
+game_year2018              3.350e-03  1.903e-03  1.399e+05   1.761 0.078324 .  
+game_year2019              8.099e-03  1.992e-03  1.147e+05   4.065 4.81e-05 ***
+game_year2020              2.576e-03  3.229e-03  3.116e+05   0.798 0.425082    
+game_year2021              6.297e-03  1.999e-03  6.616e+04   3.150 0.001636 ** 
+game_year2022              6.727e-03  2.009e-03  5.118e+04   3.348 0.000814 ***
+game_year2023              7.618e-03  1.993e-03  3.839e+04   3.823 0.000132 ***
+game_year2024              6.869e-03  2.039e-03  3.030e+04   3.369 0.000755 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>
-Correlation matrix not shown by default, as p = 21 &gt; 12.
+Correlation matrix not shown by default, as p = 22 &gt; 12.
 Use print(x, correlation=TRUE)  or
     vcov(x)        if you need it</code></pre>
 </div>
@@ -509,7 +511,7 @@ Use print(x, correlation=TRUE)  or
 <p>Coefficients of this model mirror those of the previous model in both signficance and direction, but our <code>next_batter_xwOBA</code> coefficient has decreased in magnitude to -0.02224, and is still signficant at the <span class="math inline">\(\alpha\)</span> = 0.05 level, with a p-value of 0.05. This further supports our evidence that the next batter’s xwOBA does have a small but significant impact on the current plate appearance’s xwOBA, and that this effect is negative.</p>
 <p>For interpretability, we will go back to predicting <code>pa_xwOBA</code> in our next model, as it is a more intuitive metric to understand than the difference from the batter’s season-long average.</p>
 <p><strong>Takeaway:</strong> The next batter’s xwOBA does have a small but significant impact on the current plate appearance’s xwOBA, and this effect is negative. A stronger on-deck hitter results in lower than expected outcomes for that plate appearance.</p>
-<p>If we now want to incorporate how different hitters and pitchers are affected by the next batter, we can add a slope for the next batter’s xwOBA as a random effect. This will allow us to see how the effect of the next batter’s xwOBA varies by pitcher. We do not expect an equivalent effect with batters, as players describe how the pitcher will act differently based on the abilities of the next batter, not the batter. To make sure there is enough data to get a good estimate of the slope, we will only include pitchers with at least 200 plate appearances in our dataset. We will treat the slope and intercept independently, as we do not expect that pitchers who allow higher/lower overall xwOBA also respond differently to lineup protection.</p>
+<p>If we now want to incorporate how different hitters and pitchers are affected by the next batter, we can add a slope for the next batter’s xwOBA as a random effect. This will allow us to see how the effect of the next batter’s xwOBA varies by pitcher. We do not expect an equivalent effect with batters, as players describe how the pitcher will act differently based on the abilities of the next batter, not the batter. To make sure there is enough data to get a good estimate of the slope, we will only include pitchers with at least 100 plate appearances in our dataset for a given year. We will treat the slope and intercept independently, as we do not expect that pitchers who allow higher/lower overall xwOBA also respond differently to lineup protection.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Show Code</summary>
@@ -535,15 +537,9 @@ Use print(x, correlation=TRUE)  or
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span> run_diff <span class="sc">+</span> game_year <span class="sc">+</span></span>
 <span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">+</span> next_batter_xwOBA <span class="sc">||</span> pitcher_year),  <span class="co"># uncorrelated random effects</span></span>
 <span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_filtered</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv, :
-Model failed to converge with max|grad| = 0.0117053 (tol = 0.002, component 1)</code></pre>
-</div>
-<details class="code-fold">
-<summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_slope)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_slope)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Linear mixed model fit by REML. t-tests use Satterthwaite's method [
@@ -554,55 +550,52 @@ pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA + current_matchup_advantage +
     run_diff + game_year + (1 + next_batter_xwOBA || pitcher_year)
    Data: pa_filtered
 
-REML criterion at convergence: 499452.4
+REML criterion at convergence: 565997.2
 
 Scaled residuals: 
     Min      1Q  Median      3Q     Max 
--1.3596 -0.7700 -0.3879  0.7061  4.7136 
+-1.3677 -0.7696 -0.3876  0.7057  4.7346 
 
 Random effects:
- Groups         Name              Variance Std.Dev.
- pitcher_year   (Intercept)       0.000414 0.02035 
- pitcher_year.1 next_batter_xwOBA 0.002436 0.04935 
- Residual                         0.146133 0.38227 
-Number of obs: 543995, groups:  pitcher_year, 2551
+ Groups         Name              Variance  Std.Dev.
+ pitcher_year   (Intercept)       0.0003614 0.01901 
+ pitcher_year.1 next_batter_xwOBA 0.0028632 0.05351 
+ Residual                         0.1449113 0.38067 
+Number of obs: 622199, groups:  pitcher_year, 2876
 
 Fixed effects:
                             Estimate Std. Error         df t value Pr(&gt;|t|)    
-(Intercept)                3.108e-03  6.305e-03  8.983e+04   0.493  0.62204    
-batter_xwOBA               1.014e+00  1.396e-02  5.439e+05  72.637  &lt; 2e-16 ***
-next_batter_xwOBA         -3.441e-02  1.449e-02  1.105e+05  -2.374  0.01759 *  
-current_matchup_advantage  1.915e-02  1.095e-03  3.111e+05  17.492  &lt; 2e-16 ***
-next_matchup_advantage     7.348e-04  1.096e-03  2.824e+05   0.670  0.50263    
-baserunner_state1B         1.096e-03  1.398e-03  5.438e+05   0.784  0.43287    
-baserunner_state1B-2B     -3.769e-04  2.231e-03  5.440e+05  -0.169  0.86585    
-baserunner_state1B-3B      3.556e-03  3.326e-03  5.439e+05   1.069  0.28508    
-baserunner_state2B         6.850e-03  1.980e-03  5.439e+05   3.460  0.00054 ***
-baserunner_state2B-3B     -4.961e-04  3.813e-03  5.438e+05  -0.130  0.89648    
-baserunner_state3B         6.745e-03  3.334e-03  5.439e+05   2.023  0.04309 *  
-baserunner_stateLoaded    -3.580e-03  3.868e-03  5.437e+05  -0.925  0.35476    
-outs_when_up              -4.489e-03  6.543e-04  5.435e+05  -6.861 6.82e-12 ***
-run_diff                   1.091e-04  1.970e-04  3.924e+05   0.554  0.57970    
-game_year2017             -9.815e-04  2.894e-03  2.047e+03  -0.339  0.73457    
-game_year2018             -2.376e-03  2.918e-03  2.036e+03  -0.814  0.41562    
-game_year2019              1.943e-03  3.084e-03  2.141e+03   0.630  0.52871    
-game_year2020             -1.177e-02  1.491e-02  4.119e+03  -0.790  0.42985    
-game_year2021              9.753e-04  3.010e-03  2.147e+03   0.324  0.74594    
-game_year2022              7.351e-04  2.968e-03  2.069e+03   0.248  0.80442    
-game_year2023              9.523e-05  2.870e-03  2.093e+03   0.033  0.97353    
-game_year2024             -2.692e-03  2.927e-03  2.051e+03  -0.920  0.35788    
+(Intercept)               -4.600e-04  5.783e-03  6.510e+04  -0.080 0.936606    
+batter_xwOBA               1.017e+00  1.283e-02  6.222e+05  79.288  &lt; 2e-16 ***
+next_batter_xwOBA         -3.152e-02  1.336e-02  1.258e+05  -2.359 0.018346 *  
+current_matchup_advantage  1.944e-02  1.018e-03  3.706e+05  19.093  &lt; 2e-16 ***
+next_matchup_advantage     8.983e-04  1.019e-03  3.322e+05   0.881 0.378098    
+baserunner_state1B         1.537e-03  1.304e-03  6.220e+05   1.179 0.238511    
+baserunner_state1B-2B      9.683e-04  2.078e-03  6.222e+05   0.466 0.641151    
+baserunner_state1B-3B      2.719e-03  3.080e-03  6.220e+05   0.883 0.377282    
+baserunner_state2B         6.106e-03  1.843e-03  6.221e+05   3.314 0.000921 ***
+baserunner_state2B-3B     -1.422e-03  3.559e-03  6.220e+05  -0.399 0.689560    
+baserunner_state3B         7.113e-03  3.085e-03  6.220e+05   2.305 0.021151 *  
+baserunner_stateLoaded    -2.722e-03  3.593e-03  6.219e+05  -0.758 0.448645    
+outs_when_up              -4.318e-03  6.092e-04  6.217e+05  -7.087 1.37e-12 ***
+run_diff                   1.121e-04  1.837e-04  4.468e+05   0.610 0.541649    
+game_year2016              9.108e-04  2.866e-03  2.200e+03   0.318 0.750657    
+game_year2017             -1.016e-04  2.911e-03  2.327e+03  -0.035 0.972148    
+game_year2018             -1.458e-03  2.931e-03  2.290e+03  -0.497 0.618886    
+game_year2019              2.813e-03  3.100e-03  2.453e+03   0.907 0.364376    
+game_year2020             -1.089e-02  1.486e-02  4.693e+03  -0.733 0.463727    
+game_year2021              1.866e-03  3.026e-03  2.450e+03   0.617 0.537514    
+game_year2022              1.698e-03  2.977e-03  2.303e+03   0.570 0.568543    
+game_year2023              1.003e-03  2.887e-03  2.376e+03   0.348 0.728162    
+game_year2024             -1.737e-03  2.937e-03  2.286e+03  -0.591 0.554288    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>
-Correlation matrix not shown by default, as p = 22 &gt; 12.
+Correlation matrix not shown by default, as p = 23 &gt; 12.
 Use print(x, correlation=TRUE)  or
     vcov(x)        if you need it</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>optimizer (nloptwrap) convergence code: 0 (OK)
-Model failed to converge with max|grad| = 0.0117053 (tol = 0.002, component 1)</code></pre>
 </div>
 </div>
 <p>While the signficance of <code>game_year</code> coefficients have disappeared, the rest of the coefficients are similar to the previous model. The coefficient of <code>next_batter_xwOBA</code> is now -0.0315, and is signficant at the <span class="math inline">\(\alpha\)</span> = 0.05 level, with a p-value of 0.02.</p>
@@ -612,57 +605,58 @@ Model failed to converge with max|grad| = 0.0117053 (tol = 0.002, component 1)</
 <div class="cell">
 <details class="code-fold">
 <summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Convert to a dataframe with rownames as a column</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>re_df <span class="ot">&lt;-</span> <span class="fu">ranef</span>(m_protection_slope)<span class="sc">$</span>pitcher_year <span class="sc">%&gt;%</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">"pitcher_year"</span>)</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="do">## Separate into pitcher ID and year</span></span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>re_df <span class="ot">&lt;-</span> re_df <span class="sc">%&gt;%</span></span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(pitcher_year, <span class="at">into =</span> <span class="fu">c</span>(<span class="st">"pitcher"</span>, <span class="st">"year"</span>), <span class="at">sep =</span> <span class="st">"</span><span class="sc">\\</span><span class="st">."</span>, <span class="at">convert =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a><span class="do">## Initialize a list to store correlation results</span></span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>yoy_results <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a><span class="do">## Loop through each year pair and calculate correlations</span></span>
-<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>years <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(re_df<span class="sc">$</span>year))</span>
-<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>(<span class="fu">length</span>(years) <span class="sc">-</span> <span class="dv">1</span>)) {</span>
-<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>  y1 <span class="ot">&lt;-</span> years[i]</span>
-<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>  y2 <span class="ot">&lt;-</span> years[i <span class="sc">+</span> <span class="dv">1</span>]</span>
-<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>  df_pair <span class="ot">&lt;-</span> re_df <span class="sc">%&gt;%</span></span>
-<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(year <span class="sc">%in%</span> <span class="fu">c</span>(y1, y2)) <span class="sc">%&gt;%</span></span>
-<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(pitcher, year, next_batter_xwOBA) <span class="sc">%&gt;%</span></span>
-<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> year, <span class="at">values_from =</span> next_batter_xwOBA, <span class="at">names_prefix =</span> <span class="st">"xwOBA_"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">drop_na</span>()</span>
-<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>  cor_val <span class="ot">&lt;-</span> <span class="fu">cor</span>(df_pair[[<span class="fu">paste0</span>(<span class="st">"xwOBA_"</span>, y1)]], df_pair[[<span class="fu">paste0</span>(<span class="st">"xwOBA_"</span>, y2)]])</span>
-<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>  yoy_results[[<span class="fu">paste0</span>(y1, <span class="st">"_to_"</span>, y2)]] <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">from =</span> y1,</span>
-<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">to =</span> y2,</span>
-<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">correlation =</span> cor_val,</span>
-<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_shared_pitchers =</span> <span class="fu">nrow</span>(df_pair)</span>
-<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a><span class="do">## Print all year-over-year correlations</span></span>
-<span id="cb26-37"><a href="#cb26-37" aria-hidden="true" tabindex="-1"></a>yoy_df <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(yoy_results, <span class="at">.id =</span> <span class="st">"year_pair"</span>)</span>
-<span id="cb26-38"><a href="#cb26-38" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(yoy_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Convert to a dataframe with rownames as a column</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>re_df <span class="ot">&lt;-</span> <span class="fu">ranef</span>(m_protection_slope)<span class="sc">$</span>pitcher_year <span class="sc">%&gt;%</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.data.frame</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="at">var =</span> <span class="st">"pitcher_year"</span>)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="do">## Separate into pitcher ID and year</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>re_df <span class="ot">&lt;-</span> re_df <span class="sc">%&gt;%</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(pitcher_year, <span class="at">into =</span> <span class="fu">c</span>(<span class="st">"pitcher"</span>, <span class="st">"year"</span>), <span class="at">sep =</span> <span class="st">"</span><span class="sc">\\</span><span class="st">."</span>, <span class="at">convert =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="do">## Initialize a list to store correlation results</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>yoy_results <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="do">## Loop through each year pair and calculate correlations</span></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>years <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(re_df<span class="sc">$</span>year))</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>(<span class="fu">length</span>(years) <span class="sc">-</span> <span class="dv">1</span>)) {</span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>  y1 <span class="ot">&lt;-</span> years[i]</span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>  y2 <span class="ot">&lt;-</span> years[i <span class="sc">+</span> <span class="dv">1</span>]</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>  df_pair <span class="ot">&lt;-</span> re_df <span class="sc">%&gt;%</span></span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(year <span class="sc">%in%</span> <span class="fu">c</span>(y1, y2)) <span class="sc">%&gt;%</span></span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(pitcher, year, next_batter_xwOBA) <span class="sc">%&gt;%</span></span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> year, <span class="at">values_from =</span> next_batter_xwOBA, <span class="at">names_prefix =</span> <span class="st">"xwOBA_"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">drop_na</span>()</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>  cor_val <span class="ot">&lt;-</span> <span class="fu">cor</span>(df_pair[[<span class="fu">paste0</span>(<span class="st">"xwOBA_"</span>, y1)]], df_pair[[<span class="fu">paste0</span>(<span class="st">"xwOBA_"</span>, y2)]])</span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>  yoy_results[[<span class="fu">paste0</span>(y1, <span class="st">"_to_"</span>, y2)]] <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">from =</span> y1,</span>
+<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">to =</span> y2,</span>
+<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">correlation =</span> cor_val,</span>
+<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_shared_pitchers =</span> <span class="fu">nrow</span>(df_pair)</span>
+<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb23-35"><a href="#cb23-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-36"><a href="#cb23-36" aria-hidden="true" tabindex="-1"></a><span class="do">## Print all year-over-year correlations</span></span>
+<span id="cb23-37"><a href="#cb23-37" aria-hidden="true" tabindex="-1"></a>yoy_df <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(yoy_results, <span class="at">.id =</span> <span class="st">"year_pair"</span>)</span>
+<span id="cb23-38"><a href="#cb23-38" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(yoy_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 8 × 5
+<pre><code># A tibble: 9 × 5
   year_pair     from    to correlation n_shared_pitchers
   &lt;chr&gt;        &lt;int&gt; &lt;int&gt;       &lt;dbl&gt;             &lt;int&gt;
-1 2016_to_2017  2016  2017       0.373               220
-2 2017_to_2018  2017  2018       0.366               200
-3 2018_to_2019  2018  2019       0.376               185
-4 2019_to_2020  2019  2020       0.175                 9
-5 2020_to_2021  2020  2021       0.568                 9
-6 2021_to_2022  2021  2022       0.315               182
-7 2022_to_2023  2022  2023       0.327               191
-8 2023_to_2024  2023  2024       0.260               199</code></pre>
+1 2015_to_2016  2015  2016       0.396               221
+2 2016_to_2017  2016  2017       0.374               220
+3 2017_to_2018  2017  2018       0.367               200
+4 2018_to_2019  2018  2019       0.377               185
+5 2019_to_2020  2019  2020       0.175                 9
+6 2020_to_2021  2020  2021       0.571                 9
+7 2021_to_2022  2021  2022       0.317               182
+8 2022_to_2023  2022  2023       0.328               191
+9 2023_to_2024  2023  2024       0.261               199</code></pre>
 </div>
 </div>
 <p>All of these Year-Over-Year correlations (with 2020 results ommitted due to limited sample size) are positive and greater than 0.3, except for 2019 to 2021 (still 0.25). This indicates that the random slopes for the next batter’s xwOBA are relatively stable over time, and that pitchers who are more affected by the next batter’s xwOBA in one year are likely to be similarly affected in the following year. This implies that the effect of the next batter’s xwOBA is not just a product of random noise, but rather a consistent pattern across pitchers.</p>
@@ -670,25 +664,25 @@ Model failed to converge with max|grad| = 0.0117053 (tol = 0.002, component 1)</
 <div class="cell">
 <details class="code-fold">
 <summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Make a graph for the most recent year pair (2023 to 2024)</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>re_23_24 <span class="ot">&lt;-</span> re_df <span class="sc">%&gt;%</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">2023</span>, <span class="dv">2024</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(pitcher, year, next_batter_xwOBA) <span class="sc">%&gt;%</span></span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> year, <span class="at">values_from =</span> next_batter_xwOBA, <span class="at">names_prefix =</span> <span class="st">"xwOBA_"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>()</span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="do">## Plot</span></span>
-<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(re_23_24, <span class="fu">aes</span>(<span class="at">x =</span> xwOBA_2023, <span class="at">y =</span> xwOBA_2024)) <span class="sc">+</span></span>
-<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
-<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>, <span class="at">color =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
-<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Pitcher Susceptibility to Lineup Protection (2023 vs. 2024)"</span>,</span>
-<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="fu">paste0</span>(<span class="st">"r = "</span>, <span class="fu">round</span>(<span class="fu">cor</span>(re_23_24<span class="sc">$</span>xwOBA_2023, re_23_24<span class="sc">$</span>xwOBA_2024), <span class="dv">3</span>)),</span>
-<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Random Slope on next_batter_xwOBA (2023)"</span>,</span>
-<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Random Slope on next_batter_xwOBA (2024)"</span></span>
-<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pub</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Make a graph for the most recent year pair (2023 to 2024)</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>re_23_24 <span class="ot">&lt;-</span> re_df <span class="sc">%&gt;%</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">2023</span>, <span class="dv">2024</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(pitcher, year, next_batter_xwOBA) <span class="sc">%&gt;%</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> year, <span class="at">values_from =</span> next_batter_xwOBA, <span class="at">names_prefix =</span> <span class="st">"xwOBA_"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>()</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="do">## Plot</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(re_23_24, <span class="fu">aes</span>(<span class="at">x =</span> xwOBA_2023, <span class="at">y =</span> xwOBA_2024)) <span class="sc">+</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>, <span class="at">color =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Pitcher Susceptibility to Lineup Protection (2023 vs. 2024)"</span>,</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="fu">paste0</span>(<span class="st">"r = "</span>, <span class="fu">round</span>(<span class="fu">cor</span>(re_23_24<span class="sc">$</span>xwOBA_2023, re_23_24<span class="sc">$</span>xwOBA_2024), <span class="dv">3</span>)),</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Random Slope on next_batter_xwOBA (2023)"</span>,</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Random Slope on next_batter_xwOBA (2024)"</span></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pub</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>`geom_smooth()` using formula = 'y ~ x'</code></pre>
@@ -706,71 +700,71 @@ Model failed to converge with max|grad| = 0.0117053 (tol = 0.002, component 1)</
 <div class="cell">
 <details class="code-fold">
 <summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Get 2024 slopes</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>slopes_2024 <span class="ot">&lt;-</span> re_df <span class="sc">%&gt;%</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2024</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(pitcher, year, next_batter_xwOBA)</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="do">## Get top and bottom 10</span></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>top_10 <span class="ot">&lt;-</span> slopes_2024 <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(<span class="fu">desc</span>(next_batter_xwOBA)) <span class="sc">%&gt;%</span> <span class="fu">slice</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>bottom_10 <span class="ot">&lt;-</span> slopes_2024 <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(next_batter_xwOBA) <span class="sc">%&gt;%</span> <span class="fu">slice</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="do">## Base URL of the data</span></span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>base_url <span class="ot">&lt;-</span> <span class="st">"https://raw.githubusercontent.com/chadwickbureau/register/master/data/"</span></span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="do">## Create vector of suffixes for filenames</span></span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>suffixes <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span><span class="sc">:</span><span class="dv">9</span>, letters[<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>])</span>
-<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>file_urls <span class="ot">&lt;-</span> <span class="fu">paste0</span>(base_url, <span class="st">"people-"</span>, suffixes, <span class="st">".csv"</span>)</span>
-<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a><span class="do">## Read and combine all files safely, treating all columns as characters</span></span>
-<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>people <span class="ot">&lt;-</span> <span class="fu">map_dfr</span>(file_urls, <span class="sc">~</span> <span class="fu">read_csv</span>(.x, <span class="at">col_types =</span> <span class="fu">cols</span>(<span class="at">.default =</span> <span class="st">"c"</span>)))</span>
-<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a><span class="do">## Clean and convert MLBAM ID for joining</span></span>
-<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>people_clean <span class="ot">&lt;-</span> people <span class="sc">%&gt;%</span></span>
-<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(key_mlbam, name_first, name_last) <span class="sc">%&gt;%</span></span>
-<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">key_mlbam =</span> <span class="fu">as.integer</span>(key_mlbam))</span>
-<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a><span class="do">## Join to top 10 and bottom 10 results</span></span>
-<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a>top_10 <span class="ot">&lt;-</span> top_10 <span class="sc">%&gt;%</span></span>
-<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(people_clean, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"pitcher"</span> <span class="ot">=</span> <span class="st">"key_mlbam"</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(name_first, name_last, pitcher, next_batter_xwOBA)</span>
-<span id="cb30-29"><a href="#cb30-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a>bottom_10 <span class="ot">&lt;-</span> bottom_10 <span class="sc">%&gt;%</span></span>
-<span id="cb30-31"><a href="#cb30-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(people_clean, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"pitcher"</span> <span class="ot">=</span> <span class="st">"key_mlbam"</span>)) <span class="sc">%&gt;%</span></span>
-<span id="cb30-32"><a href="#cb30-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(name_first, name_last, pitcher, next_batter_xwOBA)</span>
-<span id="cb30-33"><a href="#cb30-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-34"><a href="#cb30-34" aria-hidden="true" tabindex="-1"></a><span class="do">## Display</span></span>
-<span id="cb30-35"><a href="#cb30-35" aria-hidden="true" tabindex="-1"></a>top_10</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Get 2024 slopes</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>slopes_2024 <span class="ot">&lt;-</span> re_df <span class="sc">%&gt;%</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2024</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(pitcher, year, next_batter_xwOBA)</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="do">## Get top and bottom 10</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>top_10 <span class="ot">&lt;-</span> slopes_2024 <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(<span class="fu">desc</span>(next_batter_xwOBA)) <span class="sc">%&gt;%</span> <span class="fu">slice</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>bottom_10 <span class="ot">&lt;-</span> slopes_2024 <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(next_batter_xwOBA) <span class="sc">%&gt;%</span> <span class="fu">slice</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="do">## Base URL of the data</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>base_url <span class="ot">&lt;-</span> <span class="st">"https://raw.githubusercontent.com/chadwickbureau/register/master/data/"</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a><span class="do">## Create vector of suffixes for filenames</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>suffixes <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span><span class="sc">:</span><span class="dv">9</span>, letters[<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>])</span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>file_urls <span class="ot">&lt;-</span> <span class="fu">paste0</span>(base_url, <span class="st">"people-"</span>, suffixes, <span class="st">".csv"</span>)</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="do">## Read and combine all files safely, treating all columns as characters</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>people <span class="ot">&lt;-</span> <span class="fu">map_dfr</span>(file_urls, <span class="sc">~</span> <span class="fu">read_csv</span>(.x, <span class="at">col_types =</span> <span class="fu">cols</span>(<span class="at">.default =</span> <span class="st">"c"</span>)))</span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a><span class="do">## Clean and convert MLBAM ID for joining</span></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>people_clean <span class="ot">&lt;-</span> people <span class="sc">%&gt;%</span></span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(key_mlbam, name_first, name_last) <span class="sc">%&gt;%</span></span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">key_mlbam =</span> <span class="fu">as.integer</span>(key_mlbam))</span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a><span class="do">## Join to top 10 and bottom 10 results</span></span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a>top_10 <span class="ot">&lt;-</span> top_10 <span class="sc">%&gt;%</span></span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(people_clean, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"pitcher"</span> <span class="ot">=</span> <span class="st">"key_mlbam"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb27-28"><a href="#cb27-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(name_first, name_last, pitcher, next_batter_xwOBA)</span>
+<span id="cb27-29"><a href="#cb27-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-30"><a href="#cb27-30" aria-hidden="true" tabindex="-1"></a>bottom_10 <span class="ot">&lt;-</span> bottom_10 <span class="sc">%&gt;%</span></span>
+<span id="cb27-31"><a href="#cb27-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(people_clean, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"pitcher"</span> <span class="ot">=</span> <span class="st">"key_mlbam"</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb27-32"><a href="#cb27-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(name_first, name_last, pitcher, next_batter_xwOBA)</span>
+<span id="cb27-33"><a href="#cb27-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-34"><a href="#cb27-34" aria-hidden="true" tabindex="-1"></a><span class="do">## Display</span></span>
+<span id="cb27-35"><a href="#cb27-35" aria-hidden="true" tabindex="-1"></a>top_10</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>   name_first name_last pitcher next_batter_xwOBA
-1     Roddery     Muñoz  682610        0.06436306
-2      Martín     Pérez  527048        0.05498584
-3     Taijuan    Walker  592836        0.05464153
-4       Randy   Vásquez  681190        0.04533037
-5     Emerson   Hancock  676106        0.03982448
-6         Jon      Gray  592351        0.03780134
-7     Valente   Bellozo  678368        0.03539113
-8     Anthony    Molina  683627        0.03483042
-9       Kenta     Maeda  628317        0.03406114
-10       Kyle    Gibson  502043        0.03294523</code></pre>
+1     Roddery     Muñoz  682610        0.07649964
+2      Martín     Pérez  527048        0.06512998
+3     Taijuan    Walker  592836        0.06485610
+4       Randy   Vásquez  681190        0.05401922
+5     Emerson   Hancock  676106        0.04734642
+6         Jon      Gray  592351        0.04470282
+7     Valente   Bellozo  678368        0.04205315
+8     Anthony    Molina  683627        0.04131252
+9       Kenta     Maeda  628317        0.04045721
+10       Kyle    Gibson  502043        0.03925565</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>bottom_10</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>bottom_10</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>   name_first name_last pitcher next_batter_xwOBA
-1       Tyler   Glasnow  607192       -0.05574332
-2       Mason    Miller  695243       -0.05086609
-3        Paul    Skenes  694973       -0.04305211
-4      Raisel  Iglesias  628452       -0.04194312
-5       Bryan       Woo  693433       -0.04075505
-6      Justin    Steele  657006       -0.03881543
-7         Joe   Jiménez  641729       -0.03817278
-8        Ryan    Walker  676254       -0.03736169
-9        Sean    Hjelle  663546       -0.03453973
-10     Carlos     Rodón  607074       -0.03453727</code></pre>
+1       Tyler   Glasnow  607192       -0.06585163
+2       Mason    Miller  695243       -0.06031694
+3        Paul    Skenes  694973       -0.05088475
+4      Raisel  Iglesias  628452       -0.04973264
+5       Bryan       Woo  693433       -0.04841714
+6      Justin    Steele  657006       -0.04629680
+7         Joe   Jiménez  641729       -0.04529517
+8        Ryan    Walker  676254       -0.04428940
+9        Sean    Hjelle  663546       -0.04105592
+10     Carlos     Rodón  607074       -0.04101263</code></pre>
 </div>
 </div>
 <p>In 2024, the random slopes on next_batter_xwOBA reveal how individual pitchers deviated from the average lineup protection effect—where the fixed effect of next_batter_xwOBA was negative, indicating that pitchers tend to allow lower expected outcomes when a strong hitter is looming. At the top of the slope distribution, pitchers like Roddery Muñoz, Martín Pérez, and Randy Vásquez had positive random slopes, meaning the usual lineup protection suppression effect was less true for them—or even reversed. These pitchers were more susceptible to lineup protection (they allow better results when a stronger batter is on deck).</p>
@@ -785,14 +779,14 @@ Model failed to converge with max|grad| = 0.0117053 (tol = 0.002, component 1)</
 <div class="cell">
 <details class="code-fold">
 <summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>m_protection_walk <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  is_walk <span class="sc">~</span> batter_bb_pct <span class="sc">+</span> next_batter_xwOBA <span class="sc">+</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    current_matchup_advantage <span class="sc">+</span> next_matchup_advantage <span class="sc">+</span></span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span> run_diff <span class="sc">+</span> game_year,</span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_data_final,</span>
-<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">binomial</span>(<span class="at">link =</span> <span class="st">"logit"</span>)</span>
-<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_walk)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>m_protection_walk <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  is_walk <span class="sc">~</span> batter_bb_pct <span class="sc">+</span> next_batter_xwOBA <span class="sc">+</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    current_matchup_advantage <span class="sc">+</span> next_matchup_advantage <span class="sc">+</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span> run_diff <span class="sc">+</span> game_year,</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_data_final,</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">binomial</span>(<span class="at">link =</span> <span class="st">"logit"</span>)</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_walk)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -804,37 +798,38 @@ glm(formula = is_walk ~ batter_bb_pct + next_batter_xwOBA + current_matchup_adva
 
 Coefficients:
                            Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept)               -3.503639   0.054803 -63.931  &lt; 2e-16 ***
-batter_bb_pct             10.672839   0.159989  66.710  &lt; 2e-16 ***
-next_batter_xwOBA         -0.220682   0.147812  -1.493 0.135441    
-current_matchup_advantage  0.142243   0.011076  12.842  &lt; 2e-16 ***
-next_matchup_advantage    -0.022171   0.010990  -2.018 0.043643 *  
-baserunner_state1B        -0.106256   0.014874  -7.144 9.07e-13 ***
-baserunner_state1B-2B     -0.016479   0.022493  -0.733 0.463785    
-baserunner_state1B-3B     -0.151029   0.035152  -4.296 1.74e-05 ***
-baserunner_state2B         0.365064   0.017762  20.553  &lt; 2e-16 ***
-baserunner_state2B-3B      0.402851   0.033318  12.091  &lt; 2e-16 ***
-baserunner_state3B         0.303847   0.029790  10.200  &lt; 2e-16 ***
-baserunner_stateLoaded    -0.249409   0.041070  -6.073 1.26e-09 ***
-outs_when_up               0.085092   0.006693  12.713  &lt; 2e-16 ***
-run_diff                   0.009172   0.001790   5.124 3.00e-07 ***
-game_year2017             -0.092815   0.020633  -4.498 6.85e-06 ***
-game_year2018             -0.078969   0.020571  -3.839 0.000124 ***
-game_year2019             -0.047349   0.021397  -2.213 0.026905 *  
-game_year2020             -0.053877   0.031850  -1.692 0.090729 .  
-game_year2021             -0.046262   0.020840  -2.220 0.026431 *  
-game_year2022             -0.030979   0.021134  -1.466 0.142697    
-game_year2023             -0.045577   0.020561  -2.217 0.026646 *  
-game_year2024             -0.069715   0.021365  -3.263 0.001102 ** 
+(Intercept)               -3.604417   0.051621 -69.824  &lt; 2e-16 ***
+batter_bb_pct             10.764657   0.147696  72.884  &lt; 2e-16 ***
+next_batter_xwOBA         -0.180966   0.138735  -1.304  0.19210    
+current_matchup_advantage  0.150153   0.010445  14.376  &lt; 2e-16 ***
+next_matchup_advantage    -0.031530   0.010364  -3.042  0.00235 ** 
+baserunner_state1B        -0.106451   0.014102  -7.549 4.39e-14 ***
+baserunner_state1B-2B     -0.011978   0.021270  -0.563  0.57332    
+baserunner_state1B-3B     -0.140937   0.033013  -4.269 1.96e-05 ***
+baserunner_state2B         0.398295   0.016610  23.979  &lt; 2e-16 ***
+baserunner_state2B-3B      0.470568   0.030704  15.326  &lt; 2e-16 ***
+baserunner_state3B         0.354781   0.027459  12.920  &lt; 2e-16 ***
+baserunner_stateLoaded    -0.241287   0.038858  -6.209 5.32e-10 ***
+outs_when_up               0.089101   0.006316  14.106  &lt; 2e-16 ***
+run_diff                   0.010447   0.001696   6.160 7.29e-10 ***
+game_year2016              0.062527   0.020564   3.041  0.00236 ** 
+game_year2017             -0.030562   0.021438  -1.426  0.15399    
+game_year2018             -0.016728   0.021364  -0.783  0.43362    
+game_year2019              0.014724   0.022190   0.664  0.50697    
+game_year2020              0.006981   0.032404   0.215  0.82942    
+game_year2021              0.016040   0.021642   0.741  0.45860    
+game_year2022              0.032436   0.021892   1.482  0.13844    
+game_year2023              0.016310   0.021369   0.763  0.44532    
+game_year2024             -0.006361   0.022114  -0.288  0.77362    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
-    Null deviance: 266727  on 449654  degrees of freedom
-Residual deviance: 260801  on 449633  degrees of freedom
-  (272816 observations deleted due to missingness)
-AIC: 260845
+    Null deviance: 300566  on 509603  degrees of freedom
+Residual deviance: 293300  on 509581  degrees of freedom
+  (309808 observations deleted due to missingness)
+AIC: 293346
 
 Number of Fisher Scoring iterations: 5</code></pre>
 </div>
@@ -843,14 +838,14 @@ Number of Fisher Scoring iterations: 5</code></pre>
 <div class="cell">
 <details class="code-fold">
 <summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>m_protection_strikeout <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  is_strikeout <span class="sc">~</span> batter_k_pct <span class="sc">+</span> next_batter_xwOBA <span class="sc">+</span></span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    current_matchup_advantage <span class="sc">+</span> next_matchup_advantage <span class="sc">+</span></span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span> run_diff <span class="sc">+</span> game_year,</span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_data_final,</span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">binomial</span>(<span class="at">link =</span> <span class="st">"logit"</span>)</span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_strikeout)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>m_protection_strikeout <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  is_strikeout <span class="sc">~</span> batter_k_pct <span class="sc">+</span> next_batter_xwOBA <span class="sc">+</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    current_matchup_advantage <span class="sc">+</span> next_matchup_advantage <span class="sc">+</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span> run_diff <span class="sc">+</span> game_year,</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_data_final,</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">binomial</span>(<span class="at">link =</span> <span class="st">"logit"</span>)</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_strikeout)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -861,38 +856,39 @@ glm(formula = is_strikeout ~ batter_k_pct + next_batter_xwOBA +
     data = pa_data_final)
 
 Coefficients:
-                           Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept)               -2.750214   0.043429 -63.326  &lt; 2e-16 ***
-batter_k_pct               6.235906   0.072977  85.450  &lt; 2e-16 ***
-next_batter_xwOBA          0.108577   0.106417   1.020   0.3076    
-current_matchup_advantage -0.064773   0.007793  -8.311  &lt; 2e-16 ***
-next_matchup_advantage    -0.003771   0.007796  -0.484   0.6286    
-baserunner_state1B        -0.143846   0.010284 -13.987  &lt; 2e-16 ***
-baserunner_state1B-2B     -0.108373   0.015923  -6.806 1.00e-11 ***
-baserunner_state1B-3B     -0.299590   0.025105 -11.934  &lt; 2e-16 ***
-baserunner_state2B        -0.106118   0.014300  -7.421 1.16e-13 ***
-baserunner_state2B-3B     -0.133558   0.027765  -4.810 1.51e-06 ***
-baserunner_state3B        -0.135093   0.024123  -5.600 2.14e-08 ***
-baserunner_stateLoaded    -0.144283   0.026912  -5.361 8.26e-08 ***
-outs_when_up               0.060115   0.004748  12.662  &lt; 2e-16 ***
-run_diff                  -0.013258   0.001266 -10.471  &lt; 2e-16 ***
-game_year2017              0.022271   0.014882   1.497   0.1345    
-game_year2018              0.022000   0.014866   1.480   0.1389    
-game_year2019              0.004706   0.015573   0.302   0.7625    
-game_year2020              0.020197   0.023329   0.866   0.3866    
-game_year2021              0.029018   0.015035   1.930   0.0536 .  
-game_year2022              0.016858   0.015206   1.109   0.2676    
-game_year2023              0.018945   0.014825   1.278   0.2013    
-game_year2024              0.027397   0.015104   1.814   0.0697 .  
+                            Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)               -2.7599069  0.0404130 -68.293  &lt; 2e-16 ***
+batter_k_pct               6.2888199  0.0688935  91.283  &lt; 2e-16 ***
+next_batter_xwOBA          0.1196696  0.0993374   1.205    0.228    
+current_matchup_advantage -0.0688817  0.0073531  -9.368  &lt; 2e-16 ***
+next_matchup_advantage    -0.0026393  0.0073570  -0.359    0.720    
+baserunner_state1B        -0.1499402  0.0097384 -15.397  &lt; 2e-16 ***
+baserunner_state1B-2B     -0.1076912  0.0150464  -7.157 8.23e-13 ***
+baserunner_state1B-3B     -0.2957063  0.0235681 -12.547  &lt; 2e-16 ***
+baserunner_state2B        -0.0984864  0.0134549  -7.320 2.48e-13 ***
+baserunner_state2B-3B     -0.1337799  0.0261563  -5.115 3.14e-07 ***
+baserunner_state3B        -0.1344568  0.0226108  -5.947 2.74e-09 ***
+baserunner_stateLoaded    -0.1370497  0.0254082  -5.394 6.89e-08 ***
+outs_when_up               0.0605834  0.0044796  13.524  &lt; 2e-16 ***
+run_diff                  -0.0137829  0.0012004 -11.482  &lt; 2e-16 ***
+game_year2016             -0.0039130  0.0148857  -0.263    0.793    
+game_year2017              0.0181779  0.0152747   1.190    0.234    
+game_year2018              0.0179369  0.0152552   1.176    0.240    
+game_year2019              0.0002611  0.0159714   0.016    0.987    
+game_year2020              0.0149747  0.0236182   0.634    0.526    
+game_year2021              0.0241461  0.0154535   1.563    0.118    
+game_year2022              0.0124838  0.0155830   0.801    0.423    
+game_year2023              0.0140535  0.0152468   0.922    0.357    
+game_year2024              0.0224673  0.0154996   1.450    0.147    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
-    Null deviance: 447829  on 449654  degrees of freedom
-Residual deviance: 439292  on 449633  degrees of freedom
-  (272816 observations deleted due to missingness)
-AIC: 439336
+    Null deviance: 504132  on 509603  degrees of freedom
+Residual deviance: 494273  on 509581  degrees of freedom
+  (309808 observations deleted due to missingness)
+AIC: 494319
 
 Number of Fisher Scoring iterations: 4</code></pre>
 </div>
@@ -902,14 +898,14 @@ Number of Fisher Scoring iterations: 4</code></pre>
 <div class="cell">
 <details class="code-fold">
 <summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>m_protection_extra_base_hit <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  is_extra_base_hit <span class="sc">~</span> batter_xbh_rate <span class="sc">+</span> next_batter_xwOBA <span class="sc">+</span></span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    current_matchup_advantage <span class="sc">+</span> next_matchup_advantage <span class="sc">+</span></span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span> run_diff <span class="sc">+</span> game_year,</span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_data_final,</span>
-<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">binomial</span>(<span class="at">link =</span> <span class="st">"logit"</span>)</span>
-<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_extra_base_hit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>m_protection_extra_base_hit <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  is_extra_base_hit <span class="sc">~</span> batter_xbh_rate <span class="sc">+</span> next_batter_xwOBA <span class="sc">+</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    current_matchup_advantage <span class="sc">+</span> next_matchup_advantage <span class="sc">+</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span> run_diff <span class="sc">+</span> game_year,</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_data_final,</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">binomial</span>(<span class="at">link =</span> <span class="st">"logit"</span>)</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_extra_base_hit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -921,36 +917,37 @@ glm(formula = is_extra_base_hit ~ batter_xbh_rate + next_batter_xwOBA +
 
 Coefficients:
                            Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept)               -3.412939   0.043580 -78.315  &lt; 2e-16 ***
-batter_xbh_rate           12.981602   0.203705  63.727  &lt; 2e-16 ***
-next_batter_xwOBA         -0.165899   0.116296  -1.427 0.153718    
-current_matchup_advantage  0.135143   0.008683  15.564  &lt; 2e-16 ***
-next_matchup_advantage    -0.009744   0.008650  -1.126 0.259979    
-baserunner_state1B         0.015609   0.011253   1.387 0.165417    
-baserunner_state1B-2B      0.008968   0.017549   0.511 0.609319    
-baserunner_state1B-3B      0.023024   0.025991   0.886 0.375711    
-baserunner_state2B        -0.093610   0.016468  -5.684 1.31e-08 ***
-baserunner_state2B-3B     -0.086934   0.031214  -2.785 0.005351 ** 
-baserunner_state3B        -0.046456   0.027375  -1.697 0.089695 .  
-baserunner_stateLoaded     0.096459   0.028185   3.422 0.000621 ***
-outs_when_up              -0.046305   0.005319  -8.706  &lt; 2e-16 ***
-run_diff                   0.007544   0.001395   5.409 6.35e-08 ***
-game_year2017             -0.023226   0.016318  -1.423 0.154657    
-game_year2018             -0.018036   0.016533  -1.091 0.275328    
-game_year2019             -0.018810   0.016820  -1.118 0.263445    
-game_year2020             -0.023744   0.028865  -0.823 0.410743    
-game_year2021             -0.008552   0.016806  -0.509 0.610862    
-game_year2022             -0.002138   0.016992  -0.126 0.899877    
-game_year2023             -0.001149   0.016342  -0.070 0.943957    
-game_year2024             -0.006162   0.016845  -0.366 0.714491    
+(Intercept)               -3.441736   0.040563 -84.848  &lt; 2e-16 ***
+batter_xbh_rate           13.057888   0.192080  67.981  &lt; 2e-16 ***
+next_batter_xwOBA         -0.142683   0.108539  -1.315 0.188651    
+current_matchup_advantage  0.135176   0.008168  16.549  &lt; 2e-16 ***
+next_matchup_advantage    -0.006115   0.008136  -0.752 0.452340    
+baserunner_state1B         0.017441   0.010602   1.645 0.099965 .  
+baserunner_state1B-2B      0.006205   0.016541   0.375 0.707566    
+baserunner_state1B-3B      0.019531   0.024393   0.801 0.423319    
+baserunner_state2B        -0.097752   0.015498  -6.307 2.84e-10 ***
+baserunner_state2B-3B     -0.101633   0.029553  -3.439 0.000584 ***
+baserunner_state3B        -0.048229   0.025613  -1.883 0.059699 .  
+baserunner_stateLoaded     0.088488   0.026673   3.318 0.000908 ***
+outs_when_up              -0.046111   0.005006  -9.211  &lt; 2e-16 ***
+run_diff                   0.008150   0.001319   6.180 6.42e-10 ***
+game_year2016              0.012814   0.016321   0.785 0.432382    
+game_year2017             -0.010829   0.016705  -0.648 0.516839    
+game_year2018             -0.005318   0.016873  -0.315 0.752632    
+game_year2019             -0.007030   0.017236  -0.408 0.683384    
+game_year2020             -0.011723   0.029103  -0.403 0.687089    
+game_year2021              0.003950   0.017173   0.230 0.818058    
+game_year2022              0.011099   0.017279   0.642 0.520644    
+game_year2023              0.011634   0.016694   0.697 0.485843    
+game_year2024              0.007072   0.017127   0.413 0.679678    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
-    Null deviance: 423027  on 722470  degrees of freedom
-Residual deviance: 418374  on 722449  degrees of freedom
-AIC: 418418
+    Null deviance: 477885  on 819411  degrees of freedom
+Residual deviance: 472591  on 819389  degrees of freedom
+AIC: 472637
 
 Number of Fisher Scoring iterations: 5</code></pre>
 </div>
@@ -966,19 +963,19 @@ Number of Fisher Scoring iterations: 5</code></pre>
 <div class="cell">
 <details class="code-fold">
 <summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>pa_data_xba <span class="ot">&lt;-</span> pa_data_final <span class="sc">%&gt;%</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pa_xBA =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(pa_xBA) <span class="sc">&amp;</span> pa_xwOBA <span class="sc">==</span> <span class="dv">0</span>, <span class="dv">0</span>, pa_xBA)) <span class="sc">%&gt;%</span></span>
-<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(pa_xBA) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(batter_xBA) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(next_batter_xBA))</span>
-<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>m_protection_xBA <span class="ot">&lt;-</span> <span class="fu">lmer</span>(</span>
-<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  pa_xBA <span class="sc">~</span> batter_xBA <span class="sc">+</span> next_batter_xwOBA <span class="sc">+</span> </span>
-<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    current_matchup_advantage <span class="sc">+</span> next_matchup_advantage <span class="sc">+</span></span>
-<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span> run_diff <span class="sc">+</span> game_year <span class="sc">+</span></span>
-<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">|</span> pitcher),</span>
-<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_data_xba</span>
-<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_xBA)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>pa_data_xba <span class="ot">&lt;-</span> pa_data_final <span class="sc">%&gt;%</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pa_xBA =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(pa_xBA) <span class="sc">&amp;</span> pa_xwOBA <span class="sc">==</span> <span class="dv">0</span>, <span class="dv">0</span>, pa_xBA)) <span class="sc">%&gt;%</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(pa_xBA) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(batter_xBA) <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(next_batter_xBA))</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>m_protection_xBA <span class="ot">&lt;-</span> <span class="fu">lmer</span>(</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>  pa_xBA <span class="sc">~</span> batter_xBA <span class="sc">+</span> next_batter_xwOBA <span class="sc">+</span> </span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    current_matchup_advantage <span class="sc">+</span> next_matchup_advantage <span class="sc">+</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span> run_diff <span class="sc">+</span> game_year <span class="sc">+</span></span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">|</span> pitcher),</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_data_xba</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_xBA)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Linear mixed model fit by REML. t-tests use Satterthwaite's method [
@@ -988,48 +985,49 @@ Formula: pa_xBA ~ batter_xBA + next_batter_xwOBA + current_matchup_advantage +
     run_diff + game_year + (1 | pitcher)
    Data: pa_data_xba
 
-REML criterion at convergence: 245880.5
+REML criterion at convergence: 276850
 
 Scaled residuals: 
     Min      1Q  Median      3Q     Max 
--1.3715 -0.7904 -0.4389  0.6381  2.9444 
+-1.3726 -0.7915 -0.4387  0.6376  3.0151 
 
 Random effects:
  Groups   Name        Variance  Std.Dev.
- pitcher  (Intercept) 0.0004767 0.02183 
- Residual             0.0853343 0.29212 
-Number of obs: 648022, groups:  pitcher, 2204
+ pitcher  (Intercept) 0.0004604 0.02146 
+ Residual             0.0851418 0.29179 
+Number of obs: 734304, groups:  pitcher, 2347
 
 Fixed effects:
                             Estimate Std. Error         df t value Pr(&gt;|t|)    
-(Intercept)                1.597e-02  4.585e-03  4.177e+05   3.483 0.000495 ***
-batter_xBA                 9.839e-01  1.401e-02  6.478e+05  70.237  &lt; 2e-16 ***
-next_batter_xwOBA         -2.426e-02  1.009e-02  6.478e+05  -2.404 0.016237 *  
-current_matchup_advantage  1.160e-02  7.744e-04  4.907e+05  14.985  &lt; 2e-16 ***
-next_matchup_advantage     2.323e-04  7.765e-04  4.738e+05   0.299 0.764800    
-baserunner_state1B         4.637e-03  9.745e-04  6.478e+05   4.758 1.96e-06 ***
-baserunner_state1B-2B      2.514e-03  1.520e-03  6.480e+05   1.654 0.098029 .  
-baserunner_state1B-3B      1.211e-02  2.254e-03  6.479e+05   5.373 7.73e-08 ***
-baserunner_state2B        -4.461e-04  1.397e-03  6.478e+05  -0.319 0.749470    
-baserunner_state2B-3B     -2.299e-03  2.638e-03  6.478e+05  -0.871 0.383547    
-baserunner_state3B        -1.167e-03  2.347e-03  6.477e+05  -0.497 0.618937    
-baserunner_stateLoaded     8.172e-03  2.496e-03  6.478e+05   3.274 0.001061 ** 
-outs_when_up              -5.860e-03  4.581e-04  6.475e+05 -12.792  &lt; 2e-16 ***
-run_diff                   4.575e-04  1.224e-04  5.036e+05   3.737 0.000186 ***
-game_year2017              9.097e-04  1.465e-03  3.542e+05   0.621 0.534602    
-game_year2018              1.567e-04  1.509e-03  2.034e+05   0.104 0.917277    
-game_year2019              3.096e-03  1.587e-03  1.515e+05   1.951 0.051098 .  
-game_year2020             -2.795e-03  2.606e-03  3.383e+05  -1.072 0.283507    
-game_year2021              1.987e-03  1.603e-03  8.312e+04   1.240 0.215063    
-game_year2022              2.168e-03  1.621e-03  6.411e+04   1.337 0.181132    
-game_year2023              3.788e-03  1.606e-03  4.739e+04   2.359 0.018341 *  
-game_year2024              3.879e-03  1.652e-03  3.621e+04   2.349 0.018852 *  
+(Intercept)                1.295e-02  4.258e-03  4.365e+05   3.041 0.002361 ** 
+batter_xBA                 9.887e-01  1.317e-02  7.341e+05  75.094  &lt; 2e-16 ***
+next_batter_xwOBA         -2.290e-02  9.388e-03  7.340e+05  -2.440 0.014706 *  
+current_matchup_advantage  1.205e-02  7.253e-04  5.687e+05  16.610  &lt; 2e-16 ***
+next_matchup_advantage     4.790e-04  7.274e-04  5.498e+05   0.658 0.510262    
+baserunner_state1B         5.076e-03  9.161e-04  7.341e+05   5.541 3.01e-08 ***
+baserunner_state1B-2B      3.190e-03  1.427e-03  7.343e+05   2.235 0.025400 *  
+baserunner_state1B-3B      1.134e-02  2.107e-03  7.341e+05   5.381 7.41e-08 ***
+baserunner_state2B        -1.126e-03  1.310e-03  7.341e+05  -0.859 0.390256    
+baserunner_state2B-3B     -2.789e-03  2.483e-03  7.341e+05  -1.123 0.261369    
+baserunner_state3B        -2.150e-03  2.193e-03  7.340e+05  -0.981 0.326733    
+baserunner_stateLoaded     8.590e-03  2.346e-03  7.341e+05   3.662 0.000250 ***
+outs_when_up              -5.730e-03  4.299e-04  7.337e+05 -13.328  &lt; 2e-16 ***
+run_diff                   4.217e-04  1.153e-04  5.680e+05   3.656 0.000256 ***
+game_year2016              1.773e-03  1.445e-03  3.783e+05   1.227 0.219947    
+game_year2017              2.521e-03  1.507e-03  2.408e+05   1.673 0.094291 .  
+game_year2018              1.790e-03  1.537e-03  1.684e+05   1.165 0.244160    
+game_year2019              4.417e-03  1.613e-03  1.400e+05   2.738 0.006173 ** 
+game_year2020             -1.605e-03  2.619e-03  3.436e+05  -0.613 0.539805    
+game_year2021              3.210e-03  1.623e-03  8.141e+04   1.978 0.047935 *  
+game_year2022              3.134e-03  1.635e-03  6.381e+04   1.917 0.055183 .  
+game_year2023              4.666e-03  1.624e-03  4.763e+04   2.874 0.004054 ** 
+game_year2024              4.729e-03  1.664e-03  3.673e+04   2.841 0.004498 ** 
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <pre><code>
-Correlation matrix not shown by default, as p = 22 &gt; 12.
+Correlation matrix not shown by default, as p = 23 &gt; 12.
 Use print(x, correlation=TRUE)  or
     vcov(x)        if you need it</code></pre>
 </div>
@@ -1043,7 +1041,7 @@ Use print(x, correlation=TRUE)  or
 <div class="cell">
 <details class="code-fold">
 <summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">drop1</span>(m_protection_slope, <span class="at">test =</span> <span class="st">"Chisq"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">drop1</span>(m_protection_slope, <span class="at">test =</span> <span class="st">"Chisq"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Single term deletions using Satterthwaite's method:
@@ -1051,14 +1049,14 @@ Use print(x, correlation=TRUE)  or
 Model:
 pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA + current_matchup_advantage + next_matchup_advantage + baserunner_state + outs_when_up + run_diff + game_year + ((1 | pitcher_year) + (0 + next_batter_xwOBA | pitcher_year))
                           Sum Sq Mean Sq NumDF  DenDF   F value    Pr(&gt;F)    
-batter_xwOBA              771.02  771.02     1 543946 5276.1268 &lt; 2.2e-16 ***
-next_batter_xwOBA           0.82    0.82     1 110508    5.6370   0.01759 *  
-current_matchup_advantage  44.71   44.71     1 311072  305.9590 &lt; 2.2e-16 ***
-next_matchup_advantage      0.07    0.07     1 282355    0.4494   0.50263    
-baserunner_state            2.59    0.37     7 543671    2.5329   0.01325 *  
-outs_when_up                6.88    6.88     1 543532   47.0796 6.823e-12 ***
-run_diff                    0.04    0.04     1 392433    0.3067   0.57970    
-game_year                   0.65    0.08     8   2312    0.5585   0.81248    
+batter_xwOBA              910.99  910.99     1 622176 6286.5539 &lt; 2.2e-16 ***
+next_batter_xwOBA           0.81    0.81     1 125767    5.5630   0.01835 *  
+current_matchup_advantage  52.83   52.83     1 370579  364.5597 &lt; 2.2e-16 ***
+next_matchup_advantage      0.11    0.11     1 332189    0.7769   0.37810    
+baserunner_state            2.51    0.36     7 621854    2.4699   0.01562 *  
+outs_when_up                7.28    7.28     1 621657   50.2323 1.367e-12 ***
+run_diff                    0.05    0.05     1 446802    0.3725   0.54165    
+game_year                   0.65    0.07     9   2584    0.5008   0.87484    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
@@ -1068,21 +1066,21 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 <div class="cell">
 <details class="code-fold">
 <summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>m_protection_final <span class="ot">&lt;-</span> <span class="fu">lmer</span>(</span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  pa_xwOBA <span class="sc">~</span> batter_xwOBA <span class="sc">+</span> next_batter_xwOBA <span class="sc">+</span></span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>    current_matchup_advantage <span class="sc">+</span> </span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span></span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">+</span> next_batter_xwOBA <span class="sc">||</span> pitcher_year),  <span class="co"># uncorrelated random effects</span></span>
-<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_filtered</span>
-<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>m_protection_final <span class="ot">&lt;-</span> <span class="fu">lmer</span>(</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  pa_xwOBA <span class="sc">~</span> batter_xwOBA <span class="sc">+</span> next_batter_xwOBA <span class="sc">+</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    current_matchup_advantage <span class="sc">+</span> </span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    baserunner_state <span class="sc">+</span> outs_when_up <span class="sc">+</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">1</span> <span class="sc">+</span> next_batter_xwOBA <span class="sc">||</span> pitcher_year),  <span class="co"># uncorrelated random effects</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> pa_filtered</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv, :
-Model failed to converge with max|grad| = 0.00310026 (tol = 0.002, component 1)</code></pre>
+Model failed to converge with max|grad| = 0.00623311 (tol = 0.002, component 1)</code></pre>
 </div>
 <details class="code-fold">
 <summary>Show Code</summary>
-<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_final)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_protection_final)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Linear mixed model fit by REML. t-tests use Satterthwaite's method [
@@ -1093,49 +1091,49 @@ pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA + current_matchup_advantage +
     pitcher_year)
    Data: pa_filtered
 
-REML criterion at convergence: 499352.9
+REML criterion at convergence: 565887.3
 
 Scaled residuals: 
     Min      1Q  Median      3Q     Max 
--1.3596 -0.7701 -0.3879  0.7060  4.7154 
+-1.3680 -0.7696 -0.3876  0.7056  4.7366 
 
 Random effects:
  Groups         Name              Variance  Std.Dev.
- pitcher_year   (Intercept)       0.0004131 0.02032 
- pitcher_year.1 next_batter_xwOBA 0.0024432 0.04943 
- Residual                         0.1461321 0.38227 
-Number of obs: 543995, groups:  pitcher_year, 2551
+ pitcher_year   (Intercept)       0.0003593 0.01896 
+ pitcher_year.1 next_batter_xwOBA 0.0028778 0.05365 
+ Residual                         0.1449103 0.38067 
+Number of obs: 622199, groups:  pitcher_year, 2876
 
 Fixed effects:
                             Estimate Std. Error         df t value Pr(&gt;|t|)    
-(Intercept)                2.608e-03  5.933e-03  2.294e+05   0.439 0.660326    
-batter_xwOBA               1.015e+00  1.393e-02  5.412e+05  72.879  &lt; 2e-16 ***
-next_batter_xwOBA         -3.357e-02  1.445e-02  1.110e+05  -2.323 0.020203 *  
-current_matchup_advantage  1.896e-02  1.059e-03  4.390e+05  17.903  &lt; 2e-16 ***
-baserunner_state1B         1.097e-03  1.398e-03  5.438e+05   0.785 0.432349    
-baserunner_state1B-2B     -3.628e-04  2.231e-03  5.440e+05  -0.163 0.870790    
-baserunner_state1B-3B      3.606e-03  3.325e-03  5.439e+05   1.085 0.278126    
-baserunner_state2B         6.884e-03  1.979e-03  5.439e+05   3.479 0.000503 ***
-baserunner_state2B-3B     -4.365e-04  3.812e-03  5.439e+05  -0.114 0.908849    
-baserunner_state3B         6.777e-03  3.334e-03  5.439e+05   2.033 0.042048 *  
-baserunner_stateLoaded    -3.561e-03  3.867e-03  5.436e+05  -0.921 0.357149    
-outs_when_up              -4.479e-03  6.537e-04  5.435e+05  -6.852  7.3e-12 ***
+(Intercept)                8.100e-05  5.440e-03  2.220e+05   0.015 0.988120    
+batter_xwOBA               1.018e+00  1.280e-02  6.188e+05  79.544  &lt; 2e-16 ***
+next_batter_xwOBA         -3.083e-02  1.333e-02  1.332e+05  -2.313 0.020733 *  
+current_matchup_advantage  1.921e-02  9.856e-04  5.109e+05  19.487  &lt; 2e-16 ***
+baserunner_state1B         1.540e-03  1.304e-03  6.220e+05   1.181 0.237718    
+baserunner_state1B-2B      9.825e-04  2.077e-03  6.222e+05   0.473 0.636239    
+baserunner_state1B-3B      2.766e-03  3.079e-03  6.221e+05   0.899 0.368883    
+baserunner_state2B         6.140e-03  1.842e-03  6.221e+05   3.334 0.000857 ***
+baserunner_state2B-3B     -1.358e-03  3.558e-03  6.221e+05  -0.382 0.702700    
+baserunner_state3B         7.146e-03  3.084e-03  6.221e+05   2.317 0.020524 *  
+baserunner_stateLoaded    -2.701e-03  3.592e-03  6.218e+05  -0.752 0.452108    
+outs_when_up              -4.307e-03  6.086e-04  6.216e+05  -7.077 1.47e-12 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Correlation of Fixed Effects:
             (Intr) bt_OBA n__OBA crrn__ bsr_1B b_1B-2 b_1B-3 bsr_2B b_2B-3
-battr_xwOBA -0.572                                                        
-nxt_btt_OBA -0.608 -0.250                                                 
-crrnt_mtch_ -0.119  0.033 -0.003                                          
-bsrnnr_st1B -0.028 -0.017  0.008  0.005                                   
-bsrnn_1B-2B -0.019 -0.008  0.014  0.010  0.161                            
-bsrnn_1B-3B -0.009 -0.004  0.007  0.008  0.109  0.074                     
-bsrnnr_st2B -0.009 -0.008  0.001  0.004  0.180  0.120  0.082              
-bsrnn_2B-3B -0.013  0.006  0.004  0.009  0.095  0.064  0.044  0.072       
-bsrnnr_st3B  0.005 -0.003 -0.002  0.006  0.112  0.077  0.053  0.087  0.047
-bsrnnr_sttL -0.015  0.003  0.007  0.010  0.094  0.065  0.044  0.071  0.039
-outs_when_p -0.211 -0.005  0.017  0.006 -0.107 -0.115 -0.089 -0.130 -0.078
+battr_xwOBA -0.569                                                        
+nxt_btt_OBA -0.607 -0.253                                                 
+crrnt_mtch_ -0.122  0.035 -0.004                                          
+bsrnnr_st1B -0.026 -0.019  0.007  0.005                                   
+bsrnn_1B-2B -0.019 -0.009  0.015  0.010  0.160                            
+bsrnn_1B-3B -0.009 -0.005  0.007  0.009  0.109  0.074                     
+bsrnnr_st2B -0.009 -0.008  0.001  0.005  0.180  0.120  0.082              
+bsrnn_2B-3B -0.013  0.006  0.003  0.009  0.095  0.064  0.044  0.072       
+bsrnnr_st3B  0.005 -0.004 -0.002  0.006  0.113  0.077  0.054  0.088  0.047
+bsrnnr_sttL -0.016  0.004  0.008  0.011  0.094  0.064  0.044  0.071  0.039
+outs_when_p -0.211 -0.007  0.015  0.006 -0.107 -0.115 -0.089 -0.131 -0.078
             bsr_3B bsrn_L
 battr_xwOBA              
 nxt_btt_OBA              
@@ -1147,9 +1145,9 @@ bsrnnr_st2B
 bsrnn_2B-3B              
 bsrnnr_st3B              
 bsrnnr_sttL  0.046       
-outs_when_p -0.126 -0.078
+outs_when_p -0.126 -0.077
 optimizer (nloptwrap) convergence code: 0 (OK)
-Model failed to converge with max|grad| = 0.00310026 (tol = 0.002, component 1)</code></pre>
+Model failed to converge with max|grad| = 0.00623311 (tol = 0.002, component 1)</code></pre>
 </div>
 </div>
 <p>In our final model, all coefficients, except for the different levels of <code>baserunner_state</code>, are significant. The coefficient of <code>next_batter_xwOBA</code> is -0.03083, and is signficant at the <span class="math inline">\(\alpha\)</span> = 0.05 level, with a p-value of 0.02. This indicates that the next batter’s xwOBA does have a small but significant impact on the current plate appearance’s xwOBA, and this effect is negative.</p>

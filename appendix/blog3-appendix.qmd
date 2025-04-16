@@ -28,9 +28,6 @@ library(pubtheme)
 pa_data_final = readRDS("data/pa_data_final.rds")
 baserunning_data = readRDS("data/baserunning_data.rds")
 statcast_data = readRDS("data/statcast_all_years.rds")
-
-pa_data_final = pa_data_final %>%
-  filter(game_year != 2015)
 ```
 
 Our baserunning dataset, `baserunning_data` contains 1806 rows, each representing a player/year combination, each listed with baserunning contributions broken down by stolen bases (SB) and extra bases taken (XB).
@@ -143,6 +140,7 @@ pa_data_final <- pa_data_final %>%
                                      pa_runner_total_value / running_opportunities,
                                      0)
   )
+
 ```
 
 ## Model #1: Pitcher Behavior

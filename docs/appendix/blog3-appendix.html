@@ -201,10 +201,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <summary>Show Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pa_data_final <span class="ot">=</span> <span class="fu">readRDS</span>(<span class="st">"data/pa_data_final.rds"</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>baserunning_data <span class="ot">=</span> <span class="fu">readRDS</span>(<span class="st">"data/baserunning_data.rds"</span>)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>statcast_data <span class="ot">=</span> <span class="fu">readRDS</span>(<span class="st">"data/statcast_all_years.rds"</span>)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>pa_data_final <span class="ot">=</span> pa_data_final <span class="sc">%&gt;%</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(game_year <span class="sc">!=</span> <span class="dv">2015</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>statcast_data <span class="ot">=</span> <span class="fu">readRDS</span>(<span class="st">"data/statcast_all_years.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <p>Our baserunning dataset, <code>baserunning_data</code> contains 1806 rows, each representing a player/year combination, each listed with baserunning contributions broken down by stolen bases (SB) and extra bases taken (XB).</p>

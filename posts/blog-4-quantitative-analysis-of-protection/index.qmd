@@ -2,7 +2,7 @@
 title: "Blog Post #4: Quantitative Analysis of Protection"
 author: "Lance Brady"
 date: "2025-04-16"
-categories: [baserunning, lineups, statcast]
+categories: [analysis, lineups, statcast]
 format: html
 editor: visual
 image: blog4.jpg
@@ -19,8 +19,124 @@ execute:
 ## Setup
 
 ## Methods
+```{r}
+#| echo: false
+#| output: false
+
+library(tidyverse)
+library(lme4)
+library(lmerTest)
+library(ggeffects)
+library(car)
+library(pubtheme)
+library(baseballr)
+
+# Load the data
+batter_stats_all = readRDS("data/batter_stats_all.rds")
+pa_filtered = readRDS("data/pa_filtered.rds")
+
+m_protection_final <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + 
+    baserunner_state + outs_when_up +
+    (1 + next_batter_xwOBA || pitcher_year),  # uncorrelated random effects
+  data = pa_filtered
+)
+
+summary(m_protection_final)
+```
+
+
+```{r}
+# 1. Get the data used in the model (complete cases only)
+model_data <- model.frame(m_protection_final)
+
+# 2. Add row index to identify the rows kept
+model_data_indexed <- model_data %>%
+  mutate(row_id = row_number())
+
+# 3. Add row ID to pa_filtered
+pa_filtered_indexed <- pa_filtered %>%
+  mutate(row_id = row_number())
+
+# 4. Inner join to bring back the full columns for the model-kept rows
+pa_with_model_preds <- pa_filtered_indexed %>%
+  semi_join(model_data_indexed, by = c("pa_xwOBA", "batter_xwOBA", "next_batter_xwOBA",
+                                       "current_matchup_advantage", "baserunner_state",
+                                       "outs_when_up", "pitcher_year")) %>%
+  mutate(model_xwOBA = predict(m_protection_final, newdata = ., re.form = NA))
+
+# Summarize to get player-year averages
+batter_year_model_preds <- pa_with_model_preds %>%
+  group_by(batter, game_year) %>%
+  summarize(
+    model_based_xwOBA = mean(model_xwOBA, na.rm = TRUE),
+    plate_appearances = n(),
+    .groups = "drop"
+  )
+```
+
+```{r}
+batter_stats_all = batter_stats_all %>%
+  mutate(batter_id = factor(batter_id), game_year = factor(game_year))
+
+batter_comparison <- batter_year_model_preds %>%
+  left_join(
+    batter_stats_all,
+    by = c("batter" = "batter_id", "game_year")
+  ) %>%
+  filter(plate_appearances >= 200) %>%
+  mutate(xwOBA_diff = model_based_xwOBA - batter_xwOBA)
+```
 
 ## Analysis
+```{r}
+
+library(gt)
+
+# Top 10 by raw xwOBA
+top10_raw <- batter_comparison %>%
+  filter(game_year == 2024) %>%
+  arrange(desc(batter_xwOBA)) %>%
+  slice_head(n = 10) %>%
+  select(batter_raw = batter, raw_xwOBA = batter_xwOBA)
+
+# Top 10 by model-based xwOBA
+top10_model <- batter_comparison %>%
+  filter(game_year == 2024) %>%
+  arrange(desc(model_based_xwOBA)) %>%
+  slice_head(n = 10) %>%
+  select(batter_model = batter, model_xwOBA = model_based_xwOBA)
+
+# Combine side by side
+top10_side_by_side <- bind_cols(top10_raw, top10_model)
+
+# Format nicely with gt
+top10_side_by_side %>%
+  gt() %>%
+  tab_header(title = "Top 10 Hitters in 2024: Raw vs Model-Based xwOBA") %>%
+  cols_label(
+    batter_raw = "Player ID (Raw xwOBA)",
+    raw_xwOBA = "Raw xwOBA",
+    batter_model = "Player ID (Model xwOBA)",
+    model_xwOBA = "Model xwOBA"
+  ) %>%
+  fmt_number(columns = c(raw_xwOBA, model_xwOBA), decimals = 3)
+```
+
+```{r}
+ggplot(batter_comparison, aes(x = batter_xwOBA, y = model_based_xwOBA)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Raw xwOBA vs. Model-Based xwOBA by Batter-Year",
+    x = "Raw xwOBA",
+    y = "Model-Based xwOBA"
+  ) +
+  theme_minimal()
+```
+
+
 
 ## Visualizations
 
