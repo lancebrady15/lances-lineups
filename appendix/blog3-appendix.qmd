@@ -11,6 +11,7 @@ execute:
 ---
 
 ## Methods
+
 First, we loaded in our libraries and read the data, which contains almost every pitch from the 2023 and 2024 seasons (excluding when poor data was retrieved).
 
 ```{r}
@@ -26,145 +27,337 @@ library(pubtheme)
 
 ```{r}
 pa_data_final = readRDS("data/pa_data_final.rds")
+pa_data_final = pa_data_final %>% select(-first_base_runner_value, -second_base_runner_value, -third_base_runner_value) %>%
+  filter(game_year != "2015")
 baserunning_data = readRDS("data/baserunning_data.rds")
+basestealing_data = readRDS("data/basestealing_data.rds")
+sprint_speed = readRDS("data/sprint_speed.rds")
 statcast_data = readRDS("data/statcast_all_years.rds")
 ```
 
 Our baserunning dataset, `baserunning_data` contains 1806 rows, each representing a player/year combination, each listed with baserunning contributions broken down by stolen bases (SB) and extra bases taken (XB).
 
-We will want to do our analysis taking into account how many opportunities each player has to generate baserunning runs. This is more representative of their true baserunning threat than just the number of total baserunning runs they generated.
-
-In this code, we first create a lookup table of `running_opportunities` at the player–year level by collecting all the baserunner IDs from `on_1b`, `on_2b`, and `on_3b` in `pa_data_final` and grouping by both `runner_id` and `game_year`. Next, we merge these counts with `baserunning_data`—after converting its `start_year` column into a `game_year`—to compute a per-player average value (`runner_average_value`), defined as `runner_runs_tot` divided by `running_opportunities` for each player-year. We then merge these calculated averages back into `pa_data_final` by joining on each of the on-base columns (`on_1b`, `on_2b`, and `on_3b`) along with `game_year`, thereby creating new columns `first_base_runner_value`, `second_base_runner_value`, and `third_base_runner_value` (with any missing values set to 0). 
-
-Finally, we construct a `running_opportunities` column that counts the occupied bases in each plate appearance and compute a new metric, `pa_runner_average_value`, by dividing the sum of the individual base runner values by the number of opportunities. This metric reflects the average baserunning value per opportunity for each plate appearance, accounting for player performance on a player–year basis.
-
-
+## Model 1: Initial Models of Speed on the Basepaths
 
 ```{r}
-## Create a table of running opportunities per player-year.
-## For every plate appearance in pa_data_final, collect the baserunner IDs
-## from `on_1b`, `on_2b`, and `on_3b`, and group by both `game_year` and the runner ID.
-baserunner_opportunities <- pa_data_final %>%
-  select(game_pk, at_bat_number, game_year, on_1b, on_2b, on_3b) %>%
-  pivot_longer(
-    cols = c(on_1b, on_2b, on_3b),
-    names_to = "base",
-    values_to = "runner_id"
-  ) %>%
-  filter(!is.na(runner_id)) %>%
-  group_by(game_year, runner_id) %>%
-  summarize(running_opportunities = n(), .groups = "drop")
-
-## Create a lookup table for runner values based on baserunning_data.
-## We assume baserunning_data contains columns: `player_id` and `runner_runs_tot`.
-## We convert `player_id` to character and also set `game_year` equal to `start_year`.
 baserunning_data <- baserunning_data %>%
   mutate(
     player_id = as.character(player_id),
-    game_year = as.character(start_year)
-  )
+    game_year = as.character(start_year),
+    runner_value_1B = runner_runs_tot - runner_runs_SB3,
+    runner_value_2B = runner_runs_tot - runner_runs_SB2,
+    runner_value_3B = runner_runs_tot - runner_runs_SB2 - runner_runs_SB3
+  ) %>%
+  select(game_year, player_id, runner_value_1B, runner_value_2B, runner_value_3B)
 
-baserunner_opportunities = baserunner_opportunities %>%
+```
+
+```{r}
+# Count base-specific opportunities
+base_opportunities <- pa_data_final %>%
+  select(game_year, on_1b, on_2b, on_3b) %>%
+  pivot_longer(cols = starts_with("on_"), names_to = "base", values_to = "runner_id") %>%
+  filter(!is.na(runner_id)) %>%
+  mutate(base = case_when(
+    base == "on_1b" ~ "1B",
+    base == "on_2b" ~ "2B",
+    base == "on_3b" ~ "3B"
+  )) %>%
+  group_by(game_year, runner_id, base) %>%
+  summarize(base_opps = n(), .groups = "drop")
+```
+
+```{r}
+# Reshape runner values to long format for joining
+runner_values_long <- baserunning_data %>%
+  pivot_longer(cols = starts_with("runner_value"),
+               names_to = "base_type", values_to = "runner_value") %>%
+  mutate(base = str_extract(base_type, "\\dB")) %>%
+  select(game_year, player_id, base, runner_value)
+```
+
+```{r}
+# Compute average value per player-year-base
+runner_avg_values <- runner_values_long %>%
+  left_join(base_opportunities, by = c("game_year", "player_id" = "runner_id", "base")) %>%
+  filter(base_opps >= 10) %>%
+  mutate(runner_avg_value = ifelse(base_opps > 0, runner_value / base_opps, 0)) %>%
+  select(game_year, player_id, base, runner_avg_value) %>%
+  pivot_wider(names_from = base, values_from = runner_avg_value,
+              names_prefix = "base_value_")
+```
+
+```{r}
+# Ensure pa_data_final IDs are character
+pa_data_final <- pa_data_final %>%
   mutate(
     game_year = as.character(game_year),
-    runner_id = as.character(runner_id)
-  )
-
-baserunner_values <- baserunning_data %>%
-  select(game_year, player_id, runner_runs_tot) %>%
-  left_join(baserunner_opportunities, by = c("game_year", "player_id" = "runner_id")) %>%
-  filter(running_opportunities >= 30) %>%
-  mutate(
-    runner_average_value = ifelse(running_opportunities > 0,
-                                  runner_runs_tot / running_opportunities,
-                                  0)
-  )
-
-## Join runner_average_value back to pa_data_final for each base.
-## First, ensure the on-base columns and game_year in pa_data_final are characters.
-pa_data_final <- pa_data_final %>%
-  mutate(
     on_1b = as.character(on_1b),
     on_2b = as.character(on_2b),
-    on_3b = as.character(on_3b),
-    game_year = as.character(game_year)
+    on_3b = as.character(on_3b)
   )
+```
 
-# Join for 1B:
+```{r}
 pa_data_final <- pa_data_final %>%
   left_join(
-    baserunner_values %>% select(game_year, player_id, runner_average_value),
+    runner_avg_values %>% select(game_year, player_id, base_value_1B),
     by = c("game_year", "on_1b" = "player_id")
   ) %>%
-  rename(first_base_runner_value = runner_average_value)
-
-# Join for 2B:
-pa_data_final <- pa_data_final %>%
+  rename(first_base_runner_value = base_value_1B) %>%
   left_join(
-    baserunner_values %>% select(game_year, player_id, runner_average_value),
+    runner_avg_values %>% select(game_year, player_id, base_value_2B),
     by = c("game_year", "on_2b" = "player_id")
   ) %>%
-  rename(second_base_runner_value = runner_average_value)
-
-# Join for 3B:
-pa_data_final <- pa_data_final %>%
+  rename(second_base_runner_value = base_value_2B) %>%
   left_join(
-    baserunner_values %>% select(game_year, player_id, runner_average_value),
+    runner_avg_values %>% select(game_year, player_id, base_value_3B),
     by = c("game_year", "on_3b" = "player_id")
   ) %>%
-  rename(third_base_runner_value = runner_average_value)
+  rename(third_base_runner_value = base_value_3B)
+```
 
-## Replace NAs (if a base is empty) with 0 runner value.
+```{r}
+# Calculate per-year league average base values
+league_avg_values <- runner_avg_values %>%
+  pivot_longer(cols = starts_with("base_value_"), names_to = "base", values_to = "value") %>%
+  group_by(game_year, base) %>%
+  summarize(avg_value = mean(value, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(names_from = base, values_from = avg_value)
+```
+
+```{r}
+# Join league average values to pa_data_final
+pa_data_final <- pa_data_final %>%
+  left_join(league_avg_values, by = "game_year")
+
 pa_data_final <- pa_data_final %>%
   mutate(
-    first_base_runner_value   = ifelse(is.na(on_1b), 0, first_base_runner_value),
-    second_base_runner_value   = ifelse(is.na(on_2b), 0, second_base_runner_value),
-    third_base_runner_value = ifelse(is.na(on_3b), 0, third_base_runner_value)
-  )
-
-## Create a "running_opportunities" column in pa_data_final.
-## This counts how many bases are occupied (i.e. not NA) for that plate appearance.
-pa_data_final <- pa_data_final %>%
-  mutate(
-    running_opportunities = ifelse(!is.na(on_1b), 1, 0) +
-                              ifelse(!is.na(on_2b), 1, 0) +
-                              ifelse(!is.na(on_3b), 1, 0)
-  )
-
-## Compute the plate appearance's average runner value.
-pa_data_final <- pa_data_final %>%
-  mutate(
-    pa_runner_total_value   = first_base_runner_value + 
-      second_base_runner_value + third_base_runner_value,
+    first_base_runner_value = case_when(
+      is.na(on_1b) ~ 0,
+      is.na(first_base_runner_value) ~ base_value_1B,
+      TRUE ~ first_base_runner_value
+    ),
+    second_base_runner_value = case_when(
+      is.na(on_2b) ~ 0,
+      is.na(second_base_runner_value) ~ base_value_2B,
+      TRUE ~ second_base_runner_value
+    ),
+    third_base_runner_value = case_when(
+      is.na(on_3b) ~ 0,
+      is.na(third_base_runner_value) ~ base_value_3B,
+      TRUE ~ third_base_runner_value
+    ),
+    running_opportunities = (!is.na(on_1b)) + (!is.na(on_2b)) + (!is.na(on_3b)),
+    pa_runner_total_value = first_base_runner_value + second_base_runner_value + third_base_runner_value,
     pa_runner_average_value = ifelse(running_opportunities > 0,
                                      pa_runner_total_value / running_opportunities,
                                      0)
   )
+```
+
+```{r}
+# Compute 90th percentile thresholds by year and base
+thresholds <- pa_data_final %>%
+  select(game_year, first_base_runner_value, second_base_runner_value, third_base_runner_value) %>%
+  group_by(game_year) %>%
+  summarize(
+    thresh_1B = quantile(first_base_runner_value, 0.90, na.rm = TRUE),
+    thresh_2B = quantile(second_base_runner_value, 0.90, na.rm = TRUE),
+    thresh_3B = quantile(third_base_runner_value, 0.90, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Join back and compute flags
+pa_data_final <- pa_data_final %>%
+  left_join(thresholds, by = "game_year") %>%
+  mutate(
+    top_runner_1B = (first_base_runner_value >= thresh_1B),
+    top_runner_2B = (second_base_runner_value >= thresh_2B),
+    top_runner_3B = (third_base_runner_value >= thresh_3B)
+  )
 
 ```
 
-## Model #1: Pitcher Behavior
-
-We need to create a new dataframe `statcast_data_baserunning`, which allows us to study pitch-level Statcast data
 
 ```{r}
-## Perform a left_join on (game_pk, at_bat_number)
-statcast_data_baserunning <- statcast_data %>%
+# Make sure IDs and years are characters or integers
+basestealing_data <- basestealing_data %>%
+  mutate(
+    player_id = as.character(player_id),
+    start_year = as.integer(start_year)
+  )
+
+pa_data_final <- pa_data_final %>%
+  mutate(
+    on_1b = as.character(on_1b),
+    game_year = as.integer(game_year)
+  )
+
+pa_data_final <- pa_data_final %>%
   left_join(
-    pa_data_final %>%
-      select(game_pk, at_bat_number,
-             # Choose whichever columns you need from pa_data_final:
-             pa_runner_average_value,
-             first_base_runner_value,
-             second_base_runner_value,
-             third_base_runner_value,
-             pa_runner_total_value,
-             run_diff, baserunner_state 
-      ),
-    by = c("game_pk", "at_bat_number")
+    basestealing_data %>%
+      select(player_id, start_year, n_sb, n_cs, rate_sbx),
+    by = c("on_1b" = "player_id", "game_year" = "start_year")
+  )
+
+pa_data_final <- pa_data_final %>%
+  mutate(
+    runner_only_on_1B = if_else(!is.na(on_1b) & is.na(on_2b) & is.na(on_3b), 1, 0)
   )
 ```
 
+
+Let's do a sprint speed model:
+
+```{r}
+# Make sure player_id is character
+sprint_speed <- sprint_speed %>%
+  mutate(player_id = as.character(player_id))
+
+# Join sprint speed to plate appearance data by player ID only
+pa_data_final <- pa_data_final %>%
+  left_join(
+    sprint_speed %>% select(player_id, sprint_speed),
+    by = c("on_1b" = "player_id")
+  ) %>%
+  rename(on_1B_speed = sprint_speed) %>%
+  left_join(
+    sprint_speed %>% select(player_id, sprint_speed),
+    by = c("on_2b" = "player_id")
+  ) %>%
+  rename(on_2B_speed = sprint_speed) %>%
+  left_join(
+    sprint_speed %>% select(player_id, sprint_speed),
+    by = c("on_3b" = "player_id")
+  ) %>%
+  rename(on_3B_speed = sprint_speed)
+
+mean_speed <- mean(sprint_speed$sprint_speed, na.rm = TRUE)
+
+pa_data_final <- pa_data_final %>%
+  mutate(
+    on_1B_speed = case_when(
+      is.na(on_1b) ~ 0,  # no runner on base → 0
+      is.na(on_1B_speed) ~ mean_speed,  # runner on base but missing speed → mean
+      TRUE ~ on_1B_speed
+    ),
+    on_2B_speed = case_when(
+      is.na(on_2b) ~ 0,
+      is.na(on_2B_speed) ~ mean_speed,
+      TRUE ~ on_2B_speed
+    ),
+    on_3B_speed = case_when(
+      is.na(on_3b) ~ 0,
+      is.na(on_3B_speed) ~ mean_speed,
+      TRUE ~ on_3B_speed
+    )
+  )
+```
+
+
+```{r}
+model_value <- lmer(
+  pa_xwOBA ~ first_base_runner_value + second_base_runner_value + third_base_runner_value +
+    batter_xwOBA + next_batter_xwOBA + outs_when_up + baserunner_state + inning_grouped +
+    (1 | pitcher_year),
+  data = pa_data_runners
+)
+
+summary(model_value)
+```
+
+```{r}
+pa_data_final <- pa_data_final %>%
+  mutate(
+    baserunner_1B_present = baserunner_state %in% c("1B", "1B-2B", "1B-3B", "Loaded"),
+    baserunner_2B_present = baserunner_state %in% c("2B", "1B-2B", "2B-3B", "Loaded"),
+    baserunner_3B_present = baserunner_state %in% c("3B", "1B-3B", "2B-3B", "Loaded"),
+    baserunner_1B_only = baserunner_state == "1B",
+    baserunner_2B_only = baserunner_state == "2B",
+    baserunner_3B_only = baserunner_state == "3B")
+
+pa_data_runners <- pa_data_final %>%
+  filter(baserunner_1B_present | baserunner_2B_present | baserunner_3B_present)
+
+model_speed_runners <- lmer(
+  pa_xwOBA ~ 
+    on_1B_speed + on_2B_speed + on_3B_speed +
+    batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + outs_when_up + inning_grouped +
+    (1 | pitcher_year),
+  data = pa_data_runners
+)
+
+summary(model_speed_runners)
+```
+
+
+```{r}
+model_elite <- lmer(
+  pa_xwOBA ~ top_runner_1B + top_runner_2B + top_runner_3B +
+    batter_xwOBA + next_batter_xwOBA + outs_when_up + baserunner_state + inning_grouped +
+    (1 | pitcher_year),
+  data = pa_data_runners
+)
+summary(model_elite)
+
+```
+
+```{r}
+library(texreg)
+
+# Generate texreg object and save to .tex file
+baserunning_models = texreg(
+  list(model_value, model_speed_runners, model_elite),
+  custom.model.names = c("Runner Value Model", "Runner Speed Model", "Elite Runner Model"),
+  custom.coef.map = list(
+    "(Intercept)" = "Intercept",
+    "first_base_runner_value" = "1B Value",
+    "second_base_runner_value" = "2B Value",
+    "third_base_runner_value" = "3B Value",
+    "on_1B_speed" = "1B Speed",
+    "on_2B_speed" = "2B Speed",
+    "on_3B_speed" = "3B Speed",
+    "top_runner_1BTRUE" = "Elite 1B",
+    "top_runner_2BTRUE" = "Elite 2B",
+    "top_runner_3BTRUE" = "Elite 3B",
+    "batter_xwOBA" = "Batter xwOBA",
+    "next_batter_xwOBA" = "Next Batter xwOBA",
+    "current_matchup_advantage" = "Current Matchup Adv.",
+    "outs_when_up" = "Outs",
+    "inning_grouped2" = "Inning 2",
+    "inning_grouped3" = "Inning 3",
+    "inning_grouped4" = "Inning 4",
+    "inning_grouped5" = "Inning 5",
+    "inning_grouped6" = "Inning 6",
+    "inning_grouped7" = "Inning 7",
+    "inning_grouped8" = "Inning 8",
+    "inning_grouped9" = "Inning 9",
+    "inning_grouped10+" = "Inning 10+"
+  ),
+  caption = "Effects of Baserunning Variables on Plate Appearance xwOBA",
+  label = "tab:baserunning_models",
+  stars = c(0.001, 0.01, 0.05, 0.1),
+  digits = 3,
+  booktabs = TRUE,
+  use.packages = FALSE
+)
+
+# GSub pitcher_year to PitcherYear in baserunning_models
+baserunning_models = gsub("pitcher_year", "PitcherYear", baserunning_models)
+
+# Save the texreg object to a .tex file
+writeLines(
+  baserunning_models, "outputs/baserunning_models.tex"
+)
+```
+
+
+```{r}
+pa_data_runners = pa_data_runners %>%
+  mutate(any_elite_runner_on_base = top_runner_1B | top_runner_2B | top_runner_3B)
+```
 
 
 

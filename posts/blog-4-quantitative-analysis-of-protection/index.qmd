@@ -6,8 +6,6 @@ categories: [analysis, lineups, statcast]
 format: html
 editor: visual
 image: blog4.jpg
-execute:
-  eval: false
 ---
 
 ## Takeaways
@@ -133,10 +131,10 @@ ggplot(batter_comparison, aes(x = batter_xwOBA, y = model_based_xwOBA)) +
     x = "Raw xwOBA",
     y = "Model-Based xwOBA"
   ) +
-  theme_minimal()
+  theme_pub()
 ```
 
-
+LOOK AT WHO BENEFITS THE MOST AND LEAST.
 
 ## Visualizations
 

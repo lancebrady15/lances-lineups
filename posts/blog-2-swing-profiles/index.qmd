@@ -62,7 +62,6 @@ For full methods and model outputs [view the full appendix here](../../appendix/
 
 We will want to create a weighted standard deviation-like metric for a team's between-player swing style, either swing length or swing speed, variation. This will essentially be a weighted standard deviation of a team's player's average swing style for those two variables. I decide to give weight to each player by Plate Appearances, not by number of swings. This is because for a particular team, we do not want to overweight the free-swinging players just because they have more swing data. We want to consider player-team combinations, so that a player's plate appearances for a certain team are treated separately from their plate appearances for another team, if they played for multiple teams in this season for some reason. This will account for the fact that a player might change swing characteristics upon getting to a new team.
 
-
 To get mean swing length for a player, we need to use only the rows from the times the batter was on that team. That means merging in batter_team_map so we can group by (batter, batter_team).
 
 ```{r}

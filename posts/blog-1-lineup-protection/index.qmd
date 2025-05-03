@@ -3,18 +3,32 @@ title: "Blog Post #1: Lineup Protection or Lineup Penalty?"
 author: "Lance Brady"
 date: "2025-02-18"
 categories: [lineup protection, lineups, statcast]
-format: html
+format:
+  html:
+    echo: false
+    warning: false
+    message: false
+    eval: true
 editor: visual
 image: blog1.jpg
 ---
 
+## Abstract
+This chapter investigates the concept of lineup protection in Major League Baseball—the idea that a batter’s performance is influenced by the quality of the hitter who follows them in the lineup. Drawing on over 788,000 plate appearances from the Statcast database between 2015 and 2024, we model how the next batter’s expected offensive output (proxied by their season-long xwOBA) affects the current batter’s expected outcomes. Contrary to the conventional wisdom that stronger on-deck hitters benefit the current batter, our findings reveal a subtle but consistent "lineup penalty": better hitters on deck are associated with small but statistically significant reductions in the current batter’s expected performance. Using a series of fixed-effects and mixed-effects models—including random slopes to capture pitcher-specific sensitivities—we demonstrate that lineup context affects pitcher behavior in measurable ways, ultimately suppressing offensive outcomes for the current batter.
+
 ## Takeaways
 
-1.  The next batter's xwOBA does have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative. A stronger on-deck hitter results in lower than expected outcomes for that plate appearance.
-2.  Some of the league's best pitchers perform better when a strong hitter is on deck, serving as an indication of mental aptitude or ability to elevate in high-leverage moments that makes them so successful. This suggests that lineup protection may not be a universal phenomenon and that individual pitchers may have different responses to it.
-3.  While we see evidence pointing to fewer walks, more strikeouts, and fewer extra base hits with better `next_batter_xwOBA`, we cannot conclusively point to the next batter's xwOBA as the cause of these effects.
-4.  Even when controlling for batter skill, matchup effects, and game state, a higher next_batter_xwOBA is associated with a small but statistically significant decrease in the current batter’s expected batting average (xBA) for that plate appearance. If the next batter’s xwOBA goes up by 0.100, we estimate a \~-0.003 reduction in pa_xBA per plate appearance—over 500 plate appearances, that amounts to about 1.5 fewer hits compared to otherwise.
-5.  When we select certain fixed effects, we find that the next batter's xwOBA continue to have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative. A stronger on-deck hitter results in lower than expected outcomes for that plate appearance.
+1.  Fixed-effects linear models of xwOBA supports the idea of a lineup penalty, where having a better hitter on deck may lead to worse outcomes for the current batter.
+
+2.  While the impact of the next batter's xwOBA remains directionally consistent across models, its reduced magnitude and marginal significance in our model of xwOBA deviations from season-long averages highlight the challenges of predicting performance deviations rather than raw outcomes.
+
+3.  Some of the league's best pitchers perform better when a strong hitter is on deck, serving as an indication of mental aptitude or ability to elevate in high-leverage moments that makes them so successful. This suggests that the effects of lineup protection/penalty may not be a universal phenomenon and that individual pitchers may have different responses to it.
+
+4.  While overall offensive outcomes are negatively impacted by the next batter's xwOBA, the underlying components of this effect align in part with previous research on lineup protection. The clearest mechanisms appear to be a reduction in walks and suppression of extra-base hits, paired with an increase in weak contact leading to outs, while singles are not significantly affected. These results suggest that the quality of the next batter influences the pitcher's approach—leading to fewer walks and more aggressive strategies that ultimately reduce the likelihood of high-value offensive outcomes for the current hitter.
+
+5.  Even when controlling for batter skill, matchup effects, and game state, a higher next_batter_xwOBA is associated with a small but statistically significant decrease in the current batter’s expected batting average (xBA) for that plate appearance. If the next batter’s xwOBA goes up by 0.100, we estimate a \~-0.003 reduction in pa_xBA per plate appearance—over 500 plate appearances, that amounts to about 1.5 fewer expected hits compared to otherwise.
+
+6.  When we select for certain statistically significant fixed and random effects, we find that the next batter's xwOBA continue to have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative. A stronger on-deck hitter results in lower than expected outcomes for that plate appearance.
 
 ## Introduction to Lineup Protection
 
@@ -22,7 +36,7 @@ Batting order optimization is a heavily studied aspect of baseball decision-maki
 
 There are two main ways to study lineup protection:
 
-**Pitcher-Centric Analysis:** Examining how pitchers alter their approach based on the quality next hitter. Previous research using 30 hitter pairs since the advent of Statcast suggested that protected hitters see an average of 0.25% more strikes compared to league average, and 0.07% more pitches down the middle of the zone. This would lead to 6 additional strikes and 2 additional pitches down the middle over a season. This study was extremely limited, however, and did not account for situations without protection, only used 30 pairs of hitters, and only compared the strike percentage a protected hitter received to the league average of that year, not to the strike percentage they had in other non-protected plate appearances. If lineup protection were to exist, teams should avoid wasting lineup protection on free swingers (putting free swingers before "protectors") so that the protection is not wasted on hitters who would swing at a higher rate anyway (The Paraball Notes, 2024). Quantitatively, the hitter who bats behind you SHOULD impact the pitches you see, because the run expectancy of certain plays occurring (like walks) would change based on who the following batter is (Weinberg, 2013). Evidence of certain pairs often seems to point to the opposite, with a 2012 evaluation of players hitting after Andrew McCutchen, Ryan Braun, and Joey Votto showing no evidence that pitchers were pitching them differently based on the protection they had (Cameron, 2012).
+**Pitcher-Centric Analysis:** Examining how pitchers alter their approach based on the quality of the next hitter. Previous research using 30 hitter pairs since the advent of Statcast suggested that protected hitters see an average of 0.25% more strikes compared to league average, and 0.07% more pitches down the middle of the zone. This would lead to 6 additional strikes and 2 additional pitches down the middle over a season. This study was extremely limited, however, and did not account for situations without protection, only used 30 pairs of hitters, and only compared the strike percentage a protected hitter received to the league average of that year, not to the strike percentage they had in other non-protected plate appearances. If lineup protection were to exist, teams should avoid wasting lineup protection on free swingers (putting free swingers before "protectors") so that the protection is not wasted on hitters who would swing at a higher rate anyway (The Paraball Notes, 2024). Quantitatively, the hitter who bats behind you SHOULD impact the pitches you see, because the run expectancy of certain plays occurring (like walks) would change based on who the following batter is (Weinberg, 2013). Evidence of certain pairs often seems to point to the opposite, with a 2012 evaluation of players hitting after Andrew McCutchen, Ryan Braun, and Joey Votto showing no evidence that pitchers were pitching them differently based on the protection they had (Cameron, 2012).
 
 Hall of Famer Miguel Cabrera attributed part of his power struggles early in the 2019 season to a lack of lineup protection, essentially calling out productive-yet-not-spectacular hitter behind him, Niko Goodrum, saying, "In the past... I got a big bat behind me. You see the way guys pitch me? that explains everything." His manager responded by saying his statement was "crazy." Data revealed that he wasn't getting particularly fewer fastballs, strikes, or good pitches to hit in general, and that in his particular case, there wasn't evidence for lineup protection (Stavenhagen, 2019).
 
@@ -44,356 +58,329 @@ It is also worth noting that these anecdotal examinations are subject to sample 
 
 This article aims to provide further insights into lineup protection using pitch-by-pitch data Statcast data from the 2015 to 2024 Major League Baseball seasons, focusing on analyzing hitter outcomes. While literature is mixed and often negative on the existence of lineup protection, it often uses anecdotal evidence, and a more thorough investigation is necessary, especially one using the more advanced expected statistics we now have available.
 
+## Gap in Research
+Despite extensive anecdotal discussion surrounding lineup protection, formal statistical analyses have historically found limited or no evidence to support its existence. Much of the previous literature relied on binary indicators of protection status, small samples of elite players, or limited sets of outcome variables such as walks and strikeouts. Critically, prior studies often failed to model lineup protection as a continuous phenomenon—treating all "protection" as equal regardless of the magnitude of the on-deck hitter’s threat level. Furthermore, earlier work largely ignored modern expected outcomes metrics, such as xwOBA and xBA, which offer cleaner proxies for underlying hitter performance than traditional statistics. This chapter addresses these gaps by using a large, modern dataset; modeling protection continuously via the next batter's xwOBA; decomposing the effects into discrete offensive outcomes; and incorporating both fixed and random effects to capture player-specific and pitcher-specific sensitivities to lineup protection.
+
 ## Setup
+Our analysis centers on several key variables derived from Statcast data:
 
-We would like our independent variables to be the following:
+Outcome Variables:
 
--   Current pitcher random effects
+pa_xwOBA: Plate appearance-level expected weighted on-base average.
 
--   Current hitter's handedness and underlying quality (e.g. xwOBA, xBA)
+pa_xBA: Plate appearance-level expected batting average.
 
--   Next hitter's handedness and underlying quality (e.g. xwOBA, xBA)
+Binary indicators for discrete events: walk, strikeout, single, extra-base hit, and in-play out.
 
--   Base-out state
+Primary Predictor:
 
--   Inning
+next_batter_xwOBA: Season-long expected wOBA of the batter on deck.
 
--   Run differential
+Control Variables:
 
-Previous studies have looked at protection as a binary independent variable, but that is a narrow view on lineup protection. Lineup protection must be considered as a continuous variable because some players will protect more than others.
+batter_xwOBA: Season-long expected wOBA of the current batter.
 
-Our outcome variable for our first model will be that plate appearance's xwOBA, which will essentially give us the quality of that plate appearance based on the independent variables. We would then like to see what factor the quality of the next batter has in the outcome.
+current_matchup_advantage: Lefty/righty matchup indicator for the current batter.
 
-We will use a mixed-effects linear model to account for the random effects of pitchers and batters. Our models are described in detail below.
+next_matchup_advantage: Lefty/righty matchup indicator for the next batter.
+
+baserunner_state: Base occupancy at the start of the plate appearance.
+
+outs_when_up: Number of outs at the start of the plate appearance.
+
+run_diff: Current run differential from the batting team’s perspective.
+
+Fixed and Random Effects:
+
+batter_year: Fixed effects for batter-season combinations.
+
+pitcher_year: Fixed and random effects for pitcher-season combinations.
+
+batting_team_game: Fixed effects to capture team-game specific contexts (added in certain models).
+
+Note that the next batter's handedness matchup is the handedness of the next batter with the handedness of the current pitcher, and thus does not account for potential anticipated calls to the bullpen (when a pitcher knows they are coming out after the current batter) or pinch-hitting situations.
+
+We tested an alternative specification including inning fixed effects (inning2 through inning19), but found that they had minimal impact on model fit (ΔRMSE < 0.0001) and slightly attenuated the estimated effect of next_batter_xwOBA. We therefore exclude inning indicators from the final model for simplicity and interpretability.
+
+## Data Processing and Cleaning
+We cleaned, filtered, and processed Statcast plate appearance data to ensure consistency and relevance for lineup protection analysis. Plate appearances were retained only if:
+
+- The batter had at least 200 plate appearances in the season (ensuring a stable estimate of season-long performance).
+
+- The pitcher had faced at least 30 batters in the season.
+
+- The batter and next-batter combination appeared together in at least 40 plate appearances (to ensure meaningful variation in lineup positioning).
+
+- Data from the pandemic-shortened 2020 season were excluded from year-over-year analyses.
+
+All variables were cleaned to ensure consistent categorical coding (e.g., baserunner states, matchup indicators).
 
 ## Methods
 
 For full methods and model outputs [view the full appendix here](../../appendix/blog1-appendix.qmd).
 
-## Model #1: Mixed Effects Linear Model of Plate Appearances
+## Analysis Framework
+Our modeling strategy proceeds incrementally to evaluate the existence and mechanisms of lineup protection. Specifically:
 
-### I. Overall Offensive Value: wOBA and xWOBA
+Model 1 begins with a baseline fixed-effects model predicting plate appearance xwOBA, controlling for batter quality, pitcher quality, game context, and lineup dynamics.
 
-First, let's look at residuals from season-long averages for each plate appearance. We will read in our libraries and data.
+Model 1a extends this model by adding batting-team-game fixed effects to control for unobserved game-level heterogeneity.
 
-```{r}
-library(lme4)
-library(lmerTest)
-library(tidyverse)
-library(pubtheme)
-library(purrr)
+Model 2 predicts deviations from the batter’s season-average xwOBA, isolating within-batter performance variation.
 
-pa_data_final = readRDS("data/pa_data_final.rds")
+Model 2a adds team-game fixed effects to this deviation model.
+
+Model 3 introduces random slopes by pitcher-year on next_batter_xwOBA, allowing pitcher responsiveness to vary.
+
+Model 4 decomposes offensive events via logistic fixed-effects models for walks, strikeouts, singles, extra-base hits, and in-play outs.
+
+Model 5 translates the main fixed-effects model to plate appearance xBA to aid interpretability.
+
+Model 6 presents the final model specifications after cross-validation, likelihood testing, and model selection refinement.
+
+This structure allows us to progressively sharpen inference about whether lineup protection effects exist, how strong they are, and whether they vary meaningfully across players.
+
+## Model 1: Baseline Baseline Fixed Effects Model (Plate Appearance xwOBA)
+We begin by estimating a fixed-effects linear model predicting the expected weighted on-base average (xwOBA) for each plate appearance. Our primary independent variable of interest is the season-long expected wOBA (xwOBA) of the next batter in the lineup. We control for the current batter’s xwOBA, matchup handedness for both the current and next batter, base-out state, outs when up, and run differential. To account for persistent differences in player quality over time, we include batter-year and pitcher-year fixed effects. This model serves as our baseline assessment of whether lineup context—the quality of the on-deck hitter—affects the expected outcome of the current plate appearance.
+
+The model is as follows:
+
+$$
+\begin{aligned}
+\text{xwOBA}^{\text{PA}}_{ij} &= \beta_0 + \beta_1 \cdot \text{xwOBA}^{\text{Next Batter}}_{ij} + \beta_2 \cdot \text{Matchup}^{\text{Current}}_{ij} + \beta_3 \cdot \text{Matchup}^{\text{Next}}_{ij} \\
+&\quad + \sum_{k} \beta_{4k} \cdot \text{BaserunnerState}_{ijk} + \beta_5 \cdot \text{Outs}_{ij} + \beta_6 \cdot \text{RunDiff}_{ij} \\
+&\quad + \alpha_{\text{BatterYear}_i} + \alpha_{\text{PitcherYear}_j} + \varepsilon_{ij}
+\end{aligned}
+$$
+where the following are the variables:
+
+-   $\text{xwOBA}^{\text{PA}}_{ij}$: Expected weighted on-base average for plate appearance $i$ against pitcher $j$.
+
+Key Predictors:
+
+-   $\text{xwOBA}^{\text{Next Batter}}_{ij}$: Expected wOBA of the batter who follows in the lineup.
+
+-   $\text{Matchup}^{\text{Current}}_{ij}$: A binary indicator for the handedness advantage of the current batter (e.g., lefty vs. righty).
+
+-   $\text{Matchup}^{\text{Next}}_{ij}$: A binary indicator for the handedness advantage of the next batter.
+
+Control Variables:
+
+-   $\text{Baserunners}_{ij}$: A set of indicators for the base-out state (e.g., runner on 1B, 2B-3B, etc.).
+
+-   $\text{Outs}_{ij}$: Number of outs when the plate appearance begins.
+
+-   $\text{RunDiff}_{ij}$: Run differential from the batting team’s perspective before the plate appearance.
+
+Fixed Effects: - $\alpha_{\text{PitcherYear}_j}$: Pitcher-year fixed effects to account for time-varying differences in pitcher quality. - $\alpha_{\text{BatterYear}_i}$: Batter-year fixed effects to account for time-varying differences in batter quality. - $\varepsilon_{ij}$: Residual term capturing unexplained variation in plate appearance xwOBA.
+
+In this model, i indexes individual plate appearances and j indexes the pitcher. This plate appearance's expected xwOBA baseline is adjusted by a pitcher-year–specific intercept, $$u_{0, \text{PitcherYear}_j}$$, that varies randomly across pitchers and seasons. Batter and contextual features are treated as fixed effects. While we had originally considered **`Year`** as a fixed effect, including a random intercept for each pitcher-year combination offers a more targeted way to account for year-to-year changes. This approach captures how a pitcher's baseline performance may shift over time, effectively absorbing much of the year-specific variation without relying on broad, league-wide year indicators. A two-way ANOVA test using models with and without `Year` yielded it not statistically significant. We will use Plate Appearances where the pitcher has faced at least 30 batters, the batter had at least 200 plate appearances (so their overall value was relatively stable), and made sure each batter/next-batter pair had at least 40 plate appearances together to ensure we are accurately accounting for a batter having different results with different batter abilities following them.
+
+In this model, plate appearances ($i$) are nested within pitchers ($j$), and pitcher-year effects are modeled via random intercepts ($u_{0, \text{PitcherYear}_j}$) to account for baseline differences in pitcher performance across seasons. We initially considered including year as a fixed effect, but two-way ANOVA testing indicated that pitcher-year intercepts absorb year-to-year variation more efficiently without requiring additional league-wide controls. To ensure reliability, we restrict the sample to pitchers with at least 30 batters faced, batters with at least 200 plate appearances, and batter–next-batter pairs with at least 40 appearances together.
+
+## Model 1a: Adding Batting Team-Game Fixed Effects
+To address potential unobserved heterogeneity at the team-game level—such as managerial strategy, weather conditions, or opponent strength—we extend the baseline model by adding batting team-game fixed effects. This addition ensures that comparisons are made strictly within the same team-game contexts, improving causal identification. Model 1a otherwise retains the same structure and variables as Model 1, offering a more conservative test of lineup protection effects.
+
+
+**Table 1**
+
+```{r echo=FALSE, results='asis'}
+htmltools::includeHTML("outputs/m_protection_1_output.html")
 ```
 
-Our first model will be a mixed-effects linear model of plate appearances, where we will use the xwOBA of the current plate appearance as our outcome variable. We will use the xwOBA of the current and next batters as our main independent fixed effect, and we will also include the batter's handedness matchup, the next batter's handedness matchup, the baserunner state, outs when up, run differential, and game year as fixed effects. We will also include random effects for pitcher and batter. Note that the next batter's handedness matchup is the handedness of the next batter with the handedness of the current pitcher, and thus does not account for potential anticipated calls to the bullpen (when a pitcher knows they are coming out after the current batter) or pinch-hitting situations.
+**Reference levels:** `baserunner_state` = Empty, `game_year` = 2015. Categorical variables are dummy-coded.
 
-```{r}
-m_protection_1 <- lmer(
-  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA + 
-    current_matchup_advantage + next_matchup_advantage +
-    baserunner_state + outs_when_up + run_diff + game_year +
-    (1 | pitcher),
-  data = pa_data_final
-)
+It is verifying that our `current_matchup_advantage` is positive and statistically significant, with a coefficient of 0.0327, indicating that the batter's handedness matchup advantage does have a positive impact on the xwOBA of the current plate appearance, which is a known facet of baseball.
 
-summary(m_protection_1)
-```
+When accounting for all of the other variables, we can see that the coefficient of `next_batter_xwOBA` is negative, at -0.0431, and significant at the $\alpha$ = 0.05 level.
 
-One piece of verifying evidence for our model is that the coefficient of `batter_xwOBA` is about 1 (it is 1.02), as we are predicting the xwOBA of a player's plate appearance using their average xwOBA from the year. It is also verifying that our `current_matchup_advantage` is positive and signficant, with a coefficient of 0.02, indicating that the batter's handedness matchup advantage does have a positive impact on the xwOBA of the current plate appearance.
+This coefficient means that with a 0.100 increase in the next batter's xwOBA, we would expect a 0.00431 decrease in the current plate appearance's xwOBA. This is a small effect, but it is statistically significant and suggests that a reverse lineup protection, or a lineup penalty does exist to some degree when a better hitter is on deck.
 
-When accounting for all of the other variables, we can see that the coefficient of `next_batter_xwOBA` is negative, at -0.02742, and signficant at the $\alpha$ = 0.05 level, with a p-value of 0.02.
+We find that a matchup advantage on deck also has a significant impact on the current plate appearance's xwOBA, with a coefficient of 0.0026, indicating that a matchup advantage for the next batter does have a positive impact on the current plate appearance's xwOBA. This is more in line with lineup protection, although it is a very small effect.
 
-This coefficient means that with a 0.100 increase in the next batter's xwOBA, we would expect a 0.0027 decrease in the current plate appearance's xwOBA. This is a small effect, but it is statistically significant and suggests that a reverse lineup protection, or a lineup penalty does exist to some degree when a better hitter is on deck.
+While we will want to use model selection techniques to check if all of these variables are important, other significant coefficients make sense. The only `baserunner_state` with a significant coefficient is when a runner is on 2B, with a positive coefficient of 0.0059, indicating that having a runner on 2B increases the xwOBA of the current plate appearance compared to having nobody on base. These are situations of stress on the pitcher, where they often have to focus a lot on the player at second, and with the runner being in scoring position, they will be extra nervous about run-scoring potential. One hypothesis for why this might happen when a runner is on second but not when a runner is on third is that there is rarely a factor of the pitcher paying attention to holding a runner on at third, and instead can just focus on the batter at hand. However, the coefficient for `3B` is still marginally significant at the $\alpha = 0.1$ level. The `Outs` variable has a negative and significant coefficient, indicating that having more outs when up decreases the xwOBA of the current plate appearance. The `run_diff` variable has a negative and significant coefficient, indicating that having a larger run differential decreases the xwOBA of the current plate appearance. This could be that when a team is down, on average, they might put in better pitchers, or batters lose focus when they think they will already win. Overall, this effect is incredibly small.
 
-We do not find that a matchup advantage on deck has a significant impact on the current plate appearance's xwOBA, with a coefficient of 0.0008 and a p-value of 0.37.
+**Takeaway**: Our fixed-effects linear model of xwOBA supports the idea of a lineup penalty, where having a better hitter on deck may lead to worse outcomes for the current batter.
 
-While we will want to use model selection techniques to check if all of these variables are important, other signficant coefficients make sense. The only two `baserunner_state` with a singificant coefficient is when a runner is on 2B, with a positive coefficient of 0.008, or 1B and 3B, with a postivie coefficient of 0.006 indicating that having a runner on 2B or 1B-3B increases the xwOBA of the current plate appearance. The `outs_when_up` variable has a negative and signficiant coefficient, indicating that having more outs when up decreases the xwOBA of the current plate appearance. The `run_diff` variable has a positive and significant coefficient, indicating that having a larger run differential increases the xwOBA of the current plate appearance. This could indicate that when teams are up by a lot, they tend to be facing weaker pitchers, or have a confidence that helps them at the plate. Overall, this effect is incredibly small. `game_year` also makes sense, as the most signficant positive coefficeints in years 2019, 2021, 2022, 2023, and 2024 were all years with higher run scoring environments than the reference level of 2015.
+**Model 2**: Fixed Effects Model of xwOBA Difference
 
-Let's check this model with a mixed-effects linear model of plate appearances, where we will use the xwOBA difference of the current plate appearance from the batter's season long average as the outcome variable. We will use the xwOBA of the next batter as our main independent variable, and we will also include the batter's handedness, the next batter's handedness, the baserunner state, outs when up, run differential, and game year as fixed effects. We will also include random effects for pitcher.
+In Model 2, we shift focus from predicting raw plate appearance xwOBA to predicting deviations from the batter’s own season-average xwOBA. By modeling performance relative to each batter’s baseline, we seek to isolate game-to-game variations attributable to lineup protection rather than long-term player ability. As before, we include matchup variables, base-out state, outs, run differential, and batter-year and pitcher-year fixed effects. This model tests whether the next batter’s strength affects within-batter fluctuations in offensive performance.
 
-It is worth noting that initially we got a singularity with regards to the random effect `(1 | batter)` when it was included. This indicated that the model already had the effect of the batter baked into the model through the `xwOBA_diff` outcome variable, which is derived from `pa_xwOBA` and `batter_xwOBA`. So, we knew that almost all of the variance between batters can be accounted for by their season-long `batter_xwOBA`.
+The model is as follows:
 
-```{r}
-m_protection_2 <- lmer(
-  xwOBA_diff ~ next_batter_xwOBA + 
-    current_matchup_advantage + next_matchup_advantage +
-    baserunner_state + outs_when_up + run_diff + game_year +
-    (1 | pitcher),
-  data = pa_data_final
-)
+$$
+\begin{align*}\text{xwOBADiff}^{\text{PA}}_{ij} &= \beta_0 + \beta_1 \cdot \text{xwOBA}^{\text{Next Batter}}_{ij} \\&\quad + \beta_2 \cdot \text{Matchup}^{\text{Current}}_{ij}+ \beta_3 \cdot \text{Matchup}^{\text{Next}}_{ij} \\&\quad + \beta_4 \cdot \text{Baserunners}_{ij}+ \beta_5 \cdot \text{Outs}_{ij} \\&\quad + \beta_6 \cdot \text{RunDiff}_{ij} \\&\quad \alpha_{\text{BatterYear}_i} + \alpha_{\text{PitcherYear}_j} + + \varepsilon_{ij}\end{align*}
+$$
 
-summary(m_protection_2)
-```
+The variable names are the same as in Model 1. Coefficients in Model 2 closely mirror those of Model 1 in both direction and significance, with one key exception: the coefficient for `next_batter_xwOBA` decreases in magnitude to -0.0201 and is only marginally significant at the $\alpha = 0.1$ level. This further supports the idea that the next batter’s expected offensive output has a small but nontrivial negative impact on the current plate appearance’s xwOBA. It’s worth noting that Model 2 likely appears noisier because it predicts deviation from a batter’s season-average performance — a quantity with lower variance and, correspondingly, a lower signal-to-noise ratio. This makes the outcome more sensitive to stochastic or unobserved game-level effects.
 
-Coefficients of this model mirror those of the previous model in both signficance and direction, but our `next_batter_xwOBA` coefficient has decreased in magnitude to -0.02224, and is still signficant at the $\alpha$ = 0.05 level, with a p-value of 0.05. This further supports our evidence that the next batter's xwOBA does have a small but significant impact on the current plate appearance's xwOBA, and that this effect is negative.
+Aside from this difference, coefficients remain largely stable across Models 1 and 2, suggesting that the underlying relationships are consistent. For interpretability, however, we return to predicting `pa_xwOBA` in Model 3, as it is more intuitive than modeling deviations from a batter’s season average.
 
-For interpretability, we will go back to predicting `pa_xwOBA` in our next model, as it is a more intuitive metric to understand than the difference from the batter's season-long average.
+**Takeaway:** While the impact of the next batter's xwOBA remains directionally consistent across models, its reduced magnitude and marginal significance in our model of xwOBA deviations from season-long averages highlight the challenges of predicting performance deviations rather than raw outcomes.
 
-**Takeaway:** The next batter's xwOBA does have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative. A stronger on-deck hitter results in lower than expected outcomes for that plate appearance.
+**Model 3: Incorporating a Random Slope for the Next Batter's xwOBA**
 
-If we now want to incorporate how different hitters and pitchers are affected by the next batter, we can add a slope for the next batter's xwOBA as a random effect. This will allow us to see how the effect of the next batter's xwOBA varies by pitcher. We do not expect an equivalent effect with batters, as players describe how the pitcher will act differently based on the abilities of the next batter, not the batter. To make sure there is enough data to get a good estimate of the slope, we will only include pitchers with at least 100 plate appearances in our dataset for a given year. We will treat the slope and intercept independently, as we do not expect that pitchers who allow higher/lower overall xwOBA also respond differently to lineup protection.
+If we now want to incorporate how different pitchers are affected by the next batter, we can add a slope for the next batter's xwOBA as a random effect. This will allow us to see how the effect of the next batter's xwOBA varies by pitcher. We do not expect an equivalent effect with batters, as players describe how the pitcher will act differently based on the abilities of the next batter, not the batter. To make sure there is enough data to get a good estimate of these slopes, we will only include pitchers with at least 100 plate appearances in our dataset for a given year. We will treat the slope and intercept independently, as we do not expect that pitchers who allow higher/lower overall xwOBA also respond differently to lineup protection.
 
-```{r}
-# Count number of plate appearances per pitcher per year
-pitcher_counts <- pa_data_final %>%
-  group_by(pitcher, game_year) %>%
-  summarize(n_pa = n(), .groups = "drop") %>%
-  filter(n_pa >= 100) 
+The model is as follows:
 
-# Filter dataset to just those pitchers
-pa_filtered <- pa_data_final %>%
-  mutate(pitcher_year = interaction(pitcher, game_year)) %>%
-  filter(pitcher_year %in% interaction(pitcher_counts$pitcher, pitcher_counts$game_year))
+$$
+\begin{align*}\text{xwOBA}^{\text{PA}}_{ij} &= \beta_0 + \beta_1 \cdot \text{xwOBA}^{\text{Batter}}_{ij} + \beta_2 \cdot \text{xwOBA}^{\text{Next Batter}}_{ij} \\&\quad + \beta_3 \cdot \text{Matchup}^{\text{Current}}_{ij} + \beta_4 \cdot \text{Matchup}^{\text{Next}}_{ij} \\&\quad + \beta_5 \cdot \text{Baserunners}_{ij} + \beta_6 \cdot \text{Outs}_{ij} \\&\quad + \beta_7 \cdot \text{RunDiff}_{ij} \\&\quad + u_{0, \text{PitcherYear}_j} + u_{1, \text{PitcherYear}_j} \cdot \text{xwOBA}^{\text{Next Batter}}_{ij} + \varepsilon_{ij}\end{align*}
+$$
 
-```
+As seen in Table 1, the rest of the coefficients are similar to Model 1. The coefficient of `next_batter_xwOBA` is now -0.0307, and is negative and significant at the $\alpha$ = 0.05 level. In this model, run differential has become insignificant, but having a runner at 3rd base also now has a significant positive coefficient of 0.0071, indicating that having a runner at 3rd base increases the xwOBA of the current plate appearance compared to having nobody on base.
 
-Let's run our model using `pa_filtered`.
-
-```{r}
-m_protection_slope <- lmer(
-  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
-    current_matchup_advantage + next_matchup_advantage +
-    baserunner_state + outs_when_up + run_diff + game_year +
-    (1 + next_batter_xwOBA || pitcher_year),  # uncorrelated random effects
-  data = pa_filtered
-)
-
-summary(m_protection_slope)
-```
-
-While the signficance of `game_year` coefficients have disappeared, the rest of the coefficients are similar to the previous model. The coefficient of `next_batter_xwOBA` is now -0.0315, and is signficant at the $\alpha$ = 0.05 level, with a p-value of 0.02.
-
-#### IA. Inspection of the Random Effects for xwOBA
+#### A. Inspection of the Random Effects for xwOBA
 
 In order to get an indication of whether these random slopes are important and not just a product of random noise, we can look at the random effects of the model. We can do this by looking at the random slopes for the next batter's xwOBA for each pitcher-year combination.
 
+To get a better sense of the continuity of these random slopes--i.e. do certain pitchers have consistently high or low slopes across years--we can look at the correlation of these random slopes across years. We can do this by taking the random slopes for each pitcher-year combination and correlating them with the random slopes for the next batter's xwOBA in the following year. We do this for all year pairings from 2015 to 2024, excluding 2020 due to limited sample size
+
+**Figure 1**
+
 ```{r}
-## Convert to a dataframe with rownames as a column
-re_df <- ranef(m_protection_slope)$pitcher_year %>%
-  as.data.frame() %>%
-  rownames_to_column(var = "pitcher_year")
-
-## Separate into pitcher ID and year
-re_df <- re_df %>%
-  separate(pitcher_year, into = c("pitcher", "year"), sep = "\\.", convert = TRUE)
-
-## Initialize a list to store correlation results
-yoy_results <- list()
-
-## Loop through each year pair and calculate correlations
-years <- sort(unique(re_df$year))
-
-for (i in 1:(length(years) - 1)) {
-  y1 <- years[i]
-  y2 <- years[i + 1]
-  
-  df_pair <- re_df %>%
-    filter(year %in% c(y1, y2)) %>%
-    select(pitcher, year, next_batter_xwOBA) %>%
-    pivot_wider(names_from = year, values_from = next_batter_xwOBA, names_prefix = "xwOBA_") %>%
-    drop_na()
-  
-  cor_val <- cor(df_pair[[paste0("xwOBA_", y1)]], df_pair[[paste0("xwOBA_", y2)]])
-  
-  yoy_results[[paste0(y1, "_to_", y2)]] <- list(
-    from = y1,
-    to = y2,
-    correlation = cor_val,
-    n_shared_pitchers = nrow(df_pair)
-  )
-}
-
-## Print all year-over-year correlations
-yoy_df <- bind_rows(yoy_results, .id = "year_pair")
-print(yoy_df)
+knitr::include_graphics("outputs/yoy_correlation_plot.png")
 ```
 
-All of these Year-Over-Year correlations (with 2020 results ommitted due to limited sample size) are positive and greater than 0.3, except for 2019 to 2021 (still 0.25). This indicates that the random slopes for the next batter's xwOBA are relatively stable over time, and that pitchers who are more affected by the next batter's xwOBA in one year are likely to be similarly affected in the following year. This implies that the effect of the next batter's xwOBA is not just a product of random noise, but rather a consistent pattern across pitchers.
+All of these Year-Over-Year correlations are positive and greater than 0.25, except for 2019 to 2021, which is still positive and significantly greater than 0. This indicates that the random slopes for the next batter's xwOBA are relatively stable over time, and that pitchers who are more affected by the next batter's xwOBA in one year are likely to be similarly affected in the following year. This implies that the effect of the next batter's xwOBA is not just a product of random noise, but rather a consistent pattern across pitchers.
 
 We can graph the most recent year pair (2023 to 2024) to visualize the relationship between the random slopes for the next batter's xwOBA in those two years.
 
-```{r}
-## Make a graph for the most recent year pair (2023 to 2024)
-re_23_24 <- re_df %>%
-  filter(year %in% c(2023, 2024)) %>%
-  select(pitcher, year, next_batter_xwOBA) %>%
-  pivot_wider(names_from = year, values_from = next_batter_xwOBA, names_prefix = "xwOBA_") %>%
-  drop_na()
+**Figure 2**
 
-## Plot
-ggplot(re_23_24, aes(x = xwOBA_2023, y = xwOBA_2024)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "lm", se = FALSE, color = "blue") +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
-  labs(
-    title = "Pitcher Susceptibility to Lineup Protection (2023 vs. 2024)",
-    subtitle = paste0("r = ", round(cor(re_23_24$xwOBA_2023, re_23_24$xwOBA_2024), 3)),
-    x = "Random Slope on next_batter_xwOBA (2023)",
-    y = "Random Slope on next_batter_xwOBA (2024)"
-  ) +
-  theme_pub()
+```{=html}
+<iframe src="../../outputs/yoy_correlation_plotly.html" width="100%" height="600px" style="border:none;"></iframe>
 ```
 
-Now that we know that these random slopes are stable over time, we will decide to keep them in our model going forward for interpretability.
-
-This also means that studying indvidual pitcher's susceptibility to lineup protection is a worthwhile endeavor. We can look at the top 10 and bottom 10 pitchers in terms of their random slope for the next batter's xwOBA.
-
-```{r}
-## Get 2024 slopes
-slopes_2024 <- re_df %>%
-  filter(year == 2024) %>%
-  select(pitcher, year, next_batter_xwOBA)
-
-## Get top and bottom 10
-top_10 <- slopes_2024 %>% arrange(desc(next_batter_xwOBA)) %>% slice(1:10)
-bottom_10 <- slopes_2024 %>% arrange(next_batter_xwOBA) %>% slice(1:10)
-
-## Base URL of the data
-base_url <- "https://raw.githubusercontent.com/chadwickbureau/register/master/data/"
-
-## Create vector of suffixes for filenames
-suffixes <- c(0:9, letters[1:6])
-file_urls <- paste0(base_url, "people-", suffixes, ".csv")
-
-## Read and combine all files safely, treating all columns as characters
-people <- map_dfr(file_urls, ~ read_csv(.x, col_types = cols(.default = "c")))
-
-## Clean and convert MLBAM ID for joining
-people_clean <- people %>%
-  select(key_mlbam, name_first, name_last) %>%
-  mutate(key_mlbam = as.integer(key_mlbam))
-
-## Join to top 10 and bottom 10 results
-top_10 <- top_10 %>%
-  left_join(people_clean, by = c("pitcher" = "key_mlbam")) %>%
-  select(name_first, name_last, pitcher, next_batter_xwOBA)
-
-bottom_10 <- bottom_10 %>%
-  left_join(people_clean, by = c("pitcher" = "key_mlbam")) %>%
-  select(name_first, name_last, pitcher, next_batter_xwOBA)
-
-## Display
-top_10
-bottom_10
+```{r, echo=FALSE, results='asis'}
+cat('<p style="font-size: 0.9em; font-style: italic;">
+This interactive plot displays the relationship between pitcher-specific random slopes for the next batter\'s xwOBA across 2023 and 2024.<br>
+Hover to explore individual pitchers, their IDs, and their sensitivity to lineup protection over time.
+</p>')
 ```
 
-In 2024, the random slopes on next_batter_xwOBA reveal how individual pitchers deviated from the average lineup protection effect—where the fixed effect of next_batter_xwOBA was negative, indicating that pitchers tend to allow lower expected outcomes when a strong hitter is looming. At the top of the slope distribution, pitchers like Roddery Muñoz, Martín Pérez, and Randy Vásquez had positive random slopes, meaning the usual lineup protection suppression effect was less true for them—or even reversed. These pitchers were more susceptible to lineup protection (they allow better results when a stronger batter is on deck).
+Although these slopes seem to point to a clear observation of pitcher's underlying sensitivities to lineup protection, we can also perform t-tests on each correlation to see if it is significantly greater than 0.
+
+**Table 2**
+
+```{r, echo=FALSE, results='asis'}
+htmltools::includeHTML("outputs/correlation_t_tests.html")
+cat('<p style="font-size: 0.9em; font-style: italic;">
+One-sample t-tests were conducted for each year-to-year correlation, testing whether it is significantly greater than 0.
+</p>')
+```
+
+Because all of these have significant p-values, we can confidently say that the year-over-year correlations in random slopes are not the result of random noise, but instead reflect persistent individual-level differences in pitcher sensitivity to lineup protection. This also means that studying individual pitcher's susceptibility to lineup protection is a worthwhile endeavor.
+
+**Table 3**
+
+```{r, echo=FALSE, results='asis'}
+htmltools::includeHTML("outputs/top_10_lineup_protection_2024.html")
+```
+
+**Table 4**
+
+```{r, echo=FALSE, results='asis'}
+htmltools::includeHTML("outputs/bottom_10_lineup_protection_2024.html")
+```
+
+In 2024, the random slopes on next_batter_xwOBA reveal how individual pitchers deviated from the average lineup protection effect—where the fixed effect of next_batter_xwOBA was negative, indicating that pitchers tend to allow lower expected outcomes when a strong hitter is looming. At the top of the slope distribution, pitchers like Roddery Muñoz, Martín Pérez, and Randy Vásquez had positive random slopes, meaning the usual lineup protection suppression effect was less true for them—or even reversed. These pitchers were more susceptible to lineup protection (the pitcher's expected outcomes (xwOBA) get worse when the next batter is stronger).
 
 In contrast, pitchers like Tyler Glasnow, Paul Skenes, and Bryan Woo had even more negative slopes than average, suggesting they are especially effective at suppressing outcomes when a strong next batter is present. These pitchers were less affected (or may even pitch better) in those scenarios where a stronger batter is on deck.
 
-It is worth noting that although some of the league's best pitchers (like Glasnow and Skenes) are at the bottom of this list, this does not mean that these lists are simply a ranking of pitcher quality. The random slopes are not correlated with the fixed effect of next_batter_xwOBA, and thus, a pitcher can be very good and still have a high random slope. This is because the random slope is measuring how much the pitcher deviates from the average lineup protection effect, not how good they are overall.
+It is worth noting that although some of the league's best pitchers (like Glasnow and Skenes) are at the bottom of this list, this does not mean that these lists are simply a ranking of pitcher quality. The random slopes are not correlated with the fixed effect of `next_batter_xwOBA`, and thus, a pitcher can be very good and still have a positive random slope. This is because the random slope is measuring how much the pitcher deviates from the average lineup protection effect, not how good they are overall with lineup protection.
 
 So, when we see some of the leagues best pitchers at the bottom of this list, it means that one of their skills is to be able to pitch well regardless of the next batter's quality, and potentially even better when there is a threat looming.
 
-**Takeaway:** Some of the league's best pitchers perform better when a strong hitter is on deck, serving as an indication of mental aptitude or ability to elevate in high-leverage moments that makes them so successful. This suggests that lineup protection may not be a universal phenomenon and that individual pitchers may have different responses to it.
+**Takeaway:** Some of the league's best pitchers perform better when a strong hitter is on deck, serving as an indication of mental aptitude or ability to elevate in high-leverage moments that makes them so successful. This suggests that the effects of lineup protection/penalty may not be a universal phenomenon and that individual pitchers may have different responses to it.
 
-#### IB. Drivers of the Overall Offensive Effect
+#### B. Drivers of the Overall Offensive Effect
 
-Let's try to uncover where these overall offensive effects are coming from. Since `is_walk`, `is_strikeout`, and `is_extra_base_hit` are binary outcome variables (TRUE/FALSE), we'll want to use logistic regression models. We will use `glm` instead of `glmer` as models including failed to converge within a reasonable amount of time. First, we will look at walks.
+To better understand why the coefficient for next_batter_xwOBA in our main model is negative and significant, we decomposed offensive outcomes into their core components. Following previous research conventions, we modeled five binary outcome categories: walks, strikeouts, extra-base hits (XBH), singles, and in-play outs (IPO). Each category was modeled using a fixed-effects logistic regression, accounting for game state, matchup variables, and base-out situations.
 
-```{r}
-m_protection_walk <- glm(
-  is_walk ~ batter_bb_pct + next_batter_xwOBA +
-    current_matchup_advantage + next_matchup_advantage +
-    baserunner_state + outs_when_up + run_diff + game_year,
-  data = pa_data_final,
-  family = binomial(link = "logit")
-)
-summary(m_protection_walk)
+**Table 5**
+
+```{r, echo=FALSE, results='asis'}
+htmltools::includeHTML("outputs/m_protection_event_output.html")
 ```
 
-As expected, `batter_bb_pct` and `current_matchup_advantage` both have positive and signficant coefficients in our walk model. `m_protection_walk` shows that the coefficient of `next_batter_xwOBA` is negative, but insignificant. This indicates that the next batter's xwOBA does not have a significant impact on the current plate appearance's walk rate. We can do the same for strikeouts:
+We can focus on these five outcomes independently. Throughout these models, many baserunner states and our Outs variable have significant coefficients, but these are rather difficult to piece together for proper analysis.
 
-```{r}
-m_protection_strikeout <- glm(
-  is_strikeout ~ batter_k_pct + next_batter_xwOBA +
-    current_matchup_advantage + next_matchup_advantage +
-    baserunner_state + outs_when_up + run_diff + game_year,
-  data = pa_data_final,
-  family = binomial(link = "logit")
-)
-summary(m_protection_strikeout)
+**Walks**: The coefficient for the next batter's xwOBA is negative and significant at the 1% level (−0.5207,SE=0.1790). This suggests that when a stronger hitter is on deck, pitchers are less likely to pitch around the current batter, reducing walk probability. This aligns closely with the theoretical foundations of lineup protection—pitchers are incentivized to attack the current batter if the next one is also a threat.
+
+**Strikeouts**: The coefficient for the next batter's xwOBA on strikeouts is small and not statistically significant (0.0677,SE=0.1224). This implies that the quality of the on-deck hitter does not substantially influence the pitcher’s ability (or decision) to induce a strikeout. It’s likely that this outcome is more driven by the current batter’s own contact and swing profiles than by lineup context. It is worth noting that, as expected, the current batter having a favorable handedness matchup has a significant negative effect on the ability for that pitcher to get a strikeout.
+
+**Extra-Base Hits (XBH)**: Here, the coefficient for the next batter's xwOBA has a negative and significant effect (−0.3503,SE=0.1742), indicating that better hitters on deck reduce the likelihood of the current batter recording an extra-base hit. This could reflect more aggressive pitching strategies (e.g., fewer mistake pitches or fewer favorable counts) in high-leverage lineup situations. It also potentially explains a portion of the overall negative xwOBA association observed earlier. This is contrary to the research of Phillips (2011), but could be due to the fact that we are using a different definition of lineup protection, as that article considered lineup protection ot be a binary variable, while we are treating it as a continuous variable.
+
+**Singles**: In the singles model, the coefficient for the next batter's xwOBA is not statistically significant (−0.0580,SE=0.1342). We originally used a broader `is_hit` outcome variable, but its interpretation was confounded by the inclusion of XBH. Focusing on singles alone provides cleaner insight. This is consistent with the idea that singles are more random and luck-induced and less influenced by the pitcher's strategy or the current game context. It is also worth noting that the next hitter having a matchup advantage is positive and significant (0.0208, SE=0.0078), which could be a result of just having a lot of data. One theory as to why this is the case is that when a batter knows that someone on deck has a matchup advantage, they may not try to do too much, and instead just try to get on base, which would lead to more singles.
+
+**In-Play Outs**: Interestingly, the coefficient for the next batter's xwOBA is positive and significant (0.3293, SE = 0.1025), suggesting that better hitters on deck increase the probability of an in-play out for the current batter. This may reflect pitchers throwing more hittable pitches (reducing walks), but also locating them more effectively or strategically, resulting in weak contact or outs. Together with the XBH result, this supports the idea that lineup protection doesn't make hitters more dangerous—if anything, it suppresses high-value outcomes while increasing weak contact.
+
+**Takeaway:** While overall offensive outcomes are negatively impacted by the next batter's xwOBA, the underlying components of this effect align in part with previous research on lineup protection. These component models reinforce the central finding from our mixed-effects model: lineup protection, as proxied by next_batter_xwOBA, exerts a small but measurable negative effect on the current batter's expected value. The clearest mechanisms appear to be a reduction in walks and suppression of extra-base hits, paired with an increase in weak contact leading to outs, while singles are not significantly affected. These results suggest that the quality of the next batter influences the pitcher's approach—leading to fewer walks and more aggressive strategies that ultimately reduce the likelihood of high-value offensive outcomes for the current hitter.
+
+### II. Increased Interpretability: Fixed Effects Linear Model on xBA
+
+In order to increase interpretability, we will also look at the xBA of the current plate appearance. We will use the same model as above, but with `pa_xBA` as our outcome variable instead of `pa_xwOBA`.
+
+This model examines how a plate appearance’s batting average metric (`pa_xBA`) depends on the batter, the following hitter’s season-long expected wOBA, and various other contextual factors. The results, shown in Table 6, reaffirm the findings from our xwOBA-based models while offering additional clarity.
+
+**Table 6**
+
+```{r, echo=FALSE, results='asis'}
+htmltools::includeHTML("outputs/m_protection_xBA_output.html")
 ```
 
-The coefficient of `next_batter_xwOBA` is positive, but insignificant again. This indicates that the next batter's xwOBA does not have a significant impact on the current plate appearance's strikeout rate.
+The coefficient for next_batter_xwOBA is negative and significant (−0.0329,SE=0.0160,p\<0.05), indicating that when a stronger hitter is on deck, the current batter’s expected batting average slightly decreases. Although the effect is small in absolute terms, it is statistically meaningful and consistent with the narrative that pitchers adopt more aggressive, run-suppressing strategies when a threat looms behind the current hitter.
 
-We will also look at extra base hits:
+Additionally, current matchup advantage (e.g., lefty batter vs. righty pitcher) is positively associated with xBA, (0.0174,SE=0.0011,p\<0.001), reinforcing that platoon advantages remain a key determinant of batting success. Interestingly, next matchup advantage is only marginally significant even though it was significant in our Singles model, suggesting that expected Batting Average outcomes are just a muddled version of the more specific outcomes.
 
-```{r}
-m_protection_extra_base_hit <- glm(
-  is_extra_base_hit ~ batter_xbh_rate + next_batter_xwOBA +
-    current_matchup_advantage + next_matchup_advantage +
-    baserunner_state + outs_when_up + run_diff + game_year,
-  data = pa_data_final,
-  family = binomial(link = "logit")
-)
-summary(m_protection_extra_base_hit)
-```
+The model explains a modest proportion of variance in xBA ($R^2$=0.027), which is expected given the inherently stochastic nature of batted-ball outcomes and the granularity of pitch-by-pitch data.
 
-Again, the coefficient of `next_batter_xwOBA` is negative, but insignificant.
-
-These results suggest that the overall offensive effect attributed to lineup protection is not strongly driven by any single offensive outcome. While pitchers may slightly adjust their approach (especially walk likelihood) when facing a strong next batter or easier upcoming matchup, these adjustments do not translate significantly into changes in strikeout, walk, or extra-base hit rates.
-
-**Takeaway:** While we see evidence pointing to fewer walks, more strikeouts, and fewer extra base hits with better `next_batter_xwOBA`, we cannot conclusively point to the next batter's xwOBA as the cause of these effects.
-
-### II. Increased Interpretability: xBA
-
-In order to increase interpretability, we will also look at the xBA of the current plate appearance. We will use the same model as above, but with `pa_xBA` as our outcome variable instead of `pa_xwOBA`. We will also use the xBA of the current batter as our main independent fixed effect, along with the next batter's strength (as determined by xwOBA). We will also include the batter's handedness matchup, the next batter's handedness matchup, the baserunner state, outs when up, run differential, and game year as fixed effects. We will also include random effects for pitcher and batter.
-
-```{r}
-pa_data_xba <- pa_data_final %>%
-  mutate(pa_xBA = ifelse(is.na(pa_xBA) & pa_xwOBA == 0, 0, pa_xBA)) %>%
-  filter(!is.na(pa_xBA) & !is.na(batter_xBA) & !is.na(next_batter_xBA))
-
-m_protection_xBA <- lmer(
-  pa_xBA ~ batter_xBA + next_batter_xwOBA + 
-    current_matchup_advantage + next_matchup_advantage +
-    baserunner_state + outs_when_up + run_diff + game_year +
-    (1 | pitcher),
-  data = pa_data_xba
-)
-
-summary(m_protection_xBA)
-```
-
-This model examines how a plate appearance’s batting average metric (`pa_xBA`) depends on the batter’s season-long average (`batter_xBA`), the following hitter’s season-long expected wOBA (`next_batter_xwOBA`), and various other contextual factors. The large positive coefficient on batter_xBA (\~0.989) reaffirms that the best predictor of a single PA’s batting outcome is the batter’s own established average. Meanwhile, having a higher `next_batter_xwOBA` (coefficient \~-0.029) shows a small but statistically significant negative association, indicating the current hitter’s `pa_xBA` may drop a bit when a stronger hitter is on deck. Some baserunner states (e.g., runner on 1B, 1B-2B, or 1B-#B) slightly increase pa_xBA, others (like runner on 2B alone) decrease it, and having more outs also lowers pa_xBA.
-
-**Takeaway:** Even when controlling for batter skill, matchup effects, and game state, a higher next_batter_xwOBA is associated with a small but statistically significant decrease in the current batter’s expected batting average (xBA) for that plate appearance. If the next batter’s xwOBA goes up by 0.100, we estimate a \~-0.003 reduction in pa_xBA per plate appearance—over 500 plate appearances, that amounts to about 1.5 fewer hits compared to otherwise.
+**Takeaway:** Even when controlling for batter skill, matchup effects, and game state, a higher next_batter_xwOBA is associated with a small but statistically significant decrease in the current batter’s expected batting average (xBA) for that plate appearance. If the next batter’s xwOBA goes up by 0.100, we estimate a \~-0.003 reduction in pa_xBA per plate appearance—over 500 plate appearances, that amounts to about 1.5 fewer expected hits compared to otherwise.
 
 ### III. Model Selection of the Overall Offensive Output
 
-Let's return to our `m_protection_slope` model and see if we can improve it with model selection. Using the `drop1` function, which uses F-tests with Satterthwaite’s approximation for degrees of freedom to see what would happen to model fit if we removed each fixed effect one at a time, we get the following results.
+To determine which model to move forward with, we then found the root-mean-squared-errors (RMSE) of Model 1 (Fixed Effects OLS) and Model 3 (Mixed Effects with Random Slope), and found that with 5-fold Cross Validation, Model 1 has an estimated RMSE of 0.383, while Model 3 has an estimated RMSE of 0.381. Because of the computational limitations of doing Fixed Effects OLS to find exact log-likelihood ratios, we will use Model 3 to do model selection.
 
-```{r}
-drop1(m_protection_slope, test = "Chisq")
+To assess the contribution of each predictor in our mixed-effects model (`m_protection_slope`), we used the `drop1()` function, which conducts likelihood ratio tests by sequentially dropping one term at a time. This method compares the full model to a nested version with a single predictor removed, estimating whether that term significantly improves the model's fit to the data. A significant test result indicates that the predictor explains meaningful variation in the outcome variable (`pa_xwOBA`) beyond what is captured by other variables.
+
+**Table 7**
+
+```{r, echo=FALSE, results='asis'}
+htmltools::includeHTML("outputs/blog_1_model_selection.html")
 ```
 
-As expected, `batter_xwOBA` is incredibly important to the model, along with `current_matchup_advantage`. `next_batter_xwOBA`, `outs_when_up`, and `baserunner_state` are also important, while `next_matchip_advantage`, `run_diff`, and `game_year` are not.
+Given this output, we can exclude Next Matchup Advantage and Run Differential from our final model, given that they do not significantly worsen model fit when they are omitted.
 
-Let's create a final model with just the most important fixed effects. We will also include the random slope for the next batter's xwOBA.
+We will create two final models: `m_protection_blog_1_fe` and `m_protection_blog1_re`, using just the variables whose removal significantly worsened model fit.
 
-```{r}
-m_protection_final <- lmer(
-  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
-    current_matchup_advantage + 
-    baserunner_state + outs_when_up +
-    (1 + next_batter_xwOBA || pitcher_year),  # uncorrelated random effects
-  data = pa_filtered
-)
+**Table 8**
 
-summary(m_protection_final)
+```{r, echo=FALSE, results='asis'}
+htmltools::includeHTML("outputs/blog_1_final_output.html")
 ```
 
-In our final model, all coefficients, except for the different levels of `baserunner_state`, are significant. The coefficient of `next_batter_xwOBA` is -0.03083, and is signficant at the $\alpha$ = 0.05 level, with a p-value of 0.02. This indicates that the next batter's xwOBA does have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative.
+In both models, next_batter_xwOBA maintains a negative and statistically significant effect on the current batter’s expected outcome. Specifically, Model 1 estimates a coefficient of −0.0435 (SE=0.0177,p\<0.05), while Model 2, which allows for varying sensitivity across pitchers, estimates a slightly smaller effect of -0.0308 (SE=0.0133,p\<0.05). This consistency across model structures further reinforces the finding that stronger hitters on deck depress expected offensive performance in the current plate appearance.
 
-**Takeaway:** When we select certain fixed effects, we find that the next batter's xwOBA continue to have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative. A stronger on-deck hitter results in lower than expected outcomes for that plate appearance.
+**Takeaway:** When we select for certain statistically significant fixed and random effects, we find that the next batter's xwOBA continue to have a small but significant impact on the current plate appearance's xwOBA, and this effect is negative. A stronger on-deck hitter results in lower than expected outcomes for that plate appearance.
 
 ## Discussion
 
-This study, although rather simple, tackles some of the problems with sabermetrics' view of lineup protection. By accounting for different game situations, we find that the skill of the next batter does have a statistically significant impact on the offensive outcomes of the current one. While small, this will have significant implications for player evaluation and valuation, as we are establishing dependencies between players that have not been accounted for in the past. We also importantly incorporate the current baserunner situation, number of outs, and current batter handedness advantages, which proved signficant. These all point to the idea that simulations of baseball lineups should both include game situation states and the next batter's skill in order to get a more accurate picture of the current batter's expected outcomes. Each batter does not come up as an indepdent entity with a unique and stationary probability distribution of their outcomes, but rather a probability distribution slightly altered by externalities.
+This study revisits the long-debated concept of lineup protection through the lens of modern expected statistics, large-scale data, and mixed-effects modeling. While sabermetric orthodoxy has long rejected the idea that the quality of the on-deck hitter meaningfully alters the current batter's outcomes, our results challenge this narrative in subtle but important ways. Across several model formulations—including fixed effects, random slopes, and event-level decomposition—we consistently find that the quality of the next batter, as proxied by next_batter_xwOBA, has a small but statistically significant negative effect on the current plate appearance's offensive value.
 
-## References
+This effect—what we might term a "lineup penalty"—runs counter to the intuitive and anecdotal notion that strong protection behind a hitter will elevate their performance. Instead, we find that better on-deck hitters correlate with lower xwOBA and xBA for the current batter, suggesting that pitchers adjust their behavior not by avoiding the current batter, but by attacking them more aggressively and strategically. The breakdown of outcomes supports this: walks decline significantly when a stronger batter is on deck, while extra-base hits also become less likely. At the same time, the probability of in-play outs increases. These shifts point to a scenario where pitchers are throwing more hittable—but better located—pitches, reducing risk while suppressing offensive upside.
+
+Although these effects are small in magnitude—a 0.0043 decrease in xwOBA or a \~0.003 decrease in xBA per 0.100 increase in next batter xwOBA—they are statistically robust and directionally consistent across all models tested. Moreover, the use of continuous next batter quality, rather than a binary "protected vs. unprotected" designation used in earlier studies, allows us to more precisely quantify variation and avoid confounding effects tied to lineup position or team-level strategy.
+
+Our mixed-effects model with random slopes by pitcher-year reveals a further layer of nuance: not all pitchers respond to lineup protection in the same way. Some pitchers—like Tyler Glasnow and Paul Skenes—appear to suppress outcomes even more effectively when a strong hitter looms, possibly due to psychological edge, strategic discipline, or simply elite command. Others—like Roddery Muñoz or Martín Pérez—show the opposite pattern, struggling more in those same situations. These persistent individual differences open up a new frontier for pitcher evaluation: how well can a pitcher execute when the lineup context increases pressure? It’s not just about what stuff you throw—but how your performance responds to lineup dynamics.
+
+From a team-building and analytics perspective, these findings carry several implications. First, they suggest that the identity of the on-deck hitter has measurable consequences for the batter at the plate, even if these effects are small on a per-plate appearance basis. Over the course of a season, these marginal effects can accumulate into meaningful differences in run expectancy and win probability. Second, simulation models and lineup optimization tools should not treat hitters as isolated agents, but as nodes in an interdependent sequence influenced by surrounding players. Finally, these results offer a framework to revisit and refine older lineup protection narratives, moving beyond anecdotes and toward quantifiable patterns.
+
+Of course, there are limitations. While we’ve accounted for many confounders—game state, batter and pitcher quality, matchup handedness, and more—there remain unobserved variables that could shape pitcher strategy and hitter outcomes, including bullpen anticipation, fatigue, and scouting data not available in public Statcast feeds. We also focus on regular-season data, meaning our findings may differ in postseason or late-inning high-leverage contexts. Additionally, while we attempted to mitigate endogeneity concerns by using large samples and fixed effects, there is still potential for lineup construction biases (e.g., better hitters naturally hitting near each other) to influence results in ways we can’t fully untangle.
+
+Nonetheless, the consistency of the negative relationship between next_batter_xwOBA and offensive outcomes—even after accounting for random slopes, outcome decomposition, and alternative model structures—suggests that lineup context does shape pitcher behavior in ways that reduce the expected success of the current batter. And crucially, these effects aren’t random—they’re stable, predictable, and player-specific.
+
+In summary, this study demonstrates that lineup protection may exist, but not in the way it was originally imagined. It doesn't make hitters more dangerous—it makes them more targeted. This turns the classic idea of protection on its head, raising the possibility that the best hitters don’t benefit from who's behind them—but instead, must overcome the strategic adjustments their presence induces. Future work might explore how these effects differ by leverage, team philosophy, or pitch type, but for now, we can say with confidence: the batter on deck does matter. \## References
 
 Ambrosino, D. (2011, November 30). *Orders of protection*. The Hardball Times. <https://tht.fangraphs.com/orders-of-protection/>
 

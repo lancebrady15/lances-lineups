@@ -1,0 +1,45 @@
+
+\begin{table}
+\begin{center}
+\begin{tabular}{l c c}
+\hline
+ & Model 5: FE PA xBA + Inning & Model 5a: FE PA xBA + Team-Game FE \\
+\hline
+Next Batter xwOBA                & $-0.0185 \; (0.0145)$         & $-0.0317 \; (0.0150)^{*}$   \\
+Current Matchup Advantage        & $0.0190 \; (0.0010)^{***}$    & $0.0181 \; (0.0010)^{***}$  \\
+Next Matchup Advantage           & $0.0017 \; (0.0009)^{*}$      & $0.0012 \; (0.0009)$        \\
+1B                               & $0.0033 \; (0.0010)^{***}$    & $-0.0063 \; (0.0010)^{***}$ \\
+1B-2B                            & $0.0014 \; (0.0015)$          & $-0.0148 \; (0.0015)^{***}$ \\
+1B-3B                            & $0.0080 \; (0.0022)^{***}$    & $-0.0116 \; (0.0022)^{***}$ \\
+2B                               & $-0.0031 \; (0.0014)^{*}$     & $-0.0155 \; (0.0014)^{***}$ \\
+2B-3B                            & $-0.0047 \; (0.0026)^{\cdot}$ & $-0.0252 \; (0.0027)^{***}$ \\
+3B                               & $-0.0031 \; (0.0022)$         & $-0.0168 \; (0.0023)^{***}$ \\
+Loaded                           & $0.0069 \; (0.0024)^{**}$     & $-0.0098 \; (0.0025)^{***}$ \\
+Outs                             & $-0.0053 \; (0.0004)^{***}$   & $0.0001 \; (0.0005)$        \\
+Run Diff                         & $-0.0005 \; (0.0001)^{***}$   & $-0.0133 \; (0.0002)^{***}$ \\
+Inning 2                         & $0.0081 \; (0.0015)^{***}$    &                             \\
+Inning 3                         & $0.0116 \; (0.0014)^{***}$    &                             \\
+Inning 4                         & $0.0159 \; (0.0014)^{***}$    &                             \\
+Inning 5                         & $0.0171 \; (0.0014)^{***}$    &                             \\
+Inning 6                         & $0.0163 \; (0.0015)^{***}$    &                             \\
+Inning 7                         & $0.0137 \; (0.0017)^{***}$    &                             \\
+Inning 8                         & $0.0113 \; (0.0018)^{***}$    &                             \\
+Inning 9                         & $0.0150 \; (0.0022)^{***}$    &                             \\
+Inning 10+                       & $0.0150 \; (0.0034)^{***}$    &                             \\
+\hline
+Num. obs.                        & $707325$                      & $707325$                    \\
+Num. groups: Batter-Year        & $3578$                        & $3578$                      \\
+Num. groups: Pitcher-Year       & $5424$                        & $5424$                      \\
+R$^2$ (full model)               & $0.0262$                      & $0.0904$                    \\
+R$^2$ (proj model)               & $0.0012$                      & $0.0072$                    \\
+Adj. R$^2$ (full model)          & $0.0136$                      & $0.0203$                    \\
+Adj. R$^2$ (proj model)          & $0.0012$                      & $0.0072$                    \\
+Num. groups: Batting Team-Game & $$                            & $41582$                     \\
+\hline
+\multicolumn{3}{l}{\scriptsize{Standard errors clustered by batter-year. *** p < 0.001, ** p < 0.01, * p < 0.05, . p < 0.1}}
+\end{tabular}
+\caption{Table: Fixed-Effects Linear Model Predicting Expected Batting Average (xBA)}
+\label{table:coefficients}
+\end{center}
+\end{table}
+

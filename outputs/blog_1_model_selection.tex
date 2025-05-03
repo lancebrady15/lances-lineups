@@ -1,0 +1,23 @@
+\setlength{\LTpost}{0mm}
+\begin{longtable}{ccccccccc}
+\caption*{
+{\large \textbf{Fixed Effect Importance via Drop-One F-tests}} \\ 
+{\small Each test evaluates whether removing the fixed effect significantly worsens model fit}
+} \\ 
+\toprule
+Dropped\_Term & Sum Sq & Mean Sq & Num DF & Den DF & F Statistic & p-value & Dropped Term & Signif. \\ 
+\midrule\addlinespace[2.5pt]
+batter\_xwOBA & $918.14$ & $918.14$ & $1$ & $617,632$ & $6,336.61$ & $0.00$ & Batter xwOBA & *** \\ 
+next\_batter\_xwOBA & $0.53$ & $0.53$ & $1$ & $158,276$ & $3.65$ & $0.06$ & Next Batter xwOBA & . \\ 
+current\_matchup\_advantage & $49.76$ & $49.76$ & $1$ & $369,376$ & $343.40$ & $0.00$ & Current Matchup & *** \\ 
+next\_matchup\_advantage & $0.02$ & $0.02$ & $1$ & $324,289$ & $0.10$ & $0.75$ & Next Matchup &  \\ 
+baserunner\_state & $2.42$ & $0.35$ & $7$ & $621,848$ & $2.38$ & $0.02$ & Baserunner State & * \\ 
+outs\_when\_up & $7.75$ & $7.75$ & $1$ & $621,803$ & $53.50$ & $0.00$ & Outs & *** \\ 
+run\_diff & $0.00$ & $0.00$ & $1$ & $405,285$ & $0.01$ & $0.93$ & Run Diff &  \\ 
+inning\_grouped & $43.47$ & $4.83$ & $9$ & $219,914$ & $33.33$ & $0.00$ & Inning & *** \\ 
+\bottomrule
+\end{longtable}
+\begin{minipage}{\linewidth}
+Significance codes: *** p \textless{} 0.001, ** p \textless{} 0.01, * p \textless{} 0.05, . p \textless{} 0.1\\
+\end{minipage}
+

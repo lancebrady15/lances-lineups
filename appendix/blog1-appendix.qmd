@@ -17,12 +17,20 @@ First, we loaded in our libraries and read the data, which contains almost every
 #| output: false
 
 library(tidyverse)
-library(lme4)
 library(lmerTest)
 library(ggeffects)
 library(car)
 library(pubtheme)
 library(baseballr)
+library(texreg)
+library(lmerTest) 
+library(plotly)
+library(kableExtra)
+library(gt)
+library(glmmTMB)
+library(fixest)
+library(lmtest)
+library(broom.mixed)
 ```
 
 ```{r}
@@ -532,4 +540,2016 @@ pa_data_final <- pa_data_final %>%
   )
 ```
 
-This is our final `pa_data_final` dataset that we can load in for model analysis.
+We will want to filter `pa_data_final` one more time so that each pitcher has at least 30 plate appearances in a given year. This is to ensure that we have enough data to make reliable estimates for each pitcher, but in our models, Bayesian shrinkage will ensure that no pitcher with a small sample size will have inflated random effects anyway.
+
+```{r}
+# Count number of plate appearances per pitcher per year
+pitcher_counts <- pa_data_final %>%
+  group_by(pitcher, game_year) %>%
+  summarize(n_pa = n(), .groups = "drop") %>%
+  filter(n_pa >= 30)
+
+# Filter dataset to just those pitchers
+pa_data_final <- pa_data_final %>%
+  mutate(pitcher_year = interaction(pitcher, game_year)) %>%
+  filter(pitcher_year %in% interaction(pitcher_counts$pitcher, pitcher_counts$game_year))
+
+pa_data_final = pa_data_final %>%
+  mutate(batter_year = interaction(batter, game_year))
+
+```
+
+This is the final `pa_data_final` we will use for modeling.
+
+## Models/Outputs
+
+This is `m_protection_1` and `m_protection_1a`:
+
+```{r}
+# Fit the models
+m_protection_1 <- feols(
+  pa_xwOBA ~ next_batter_xwOBA + current_matchup_advantage +
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff + inning_grouped |
+    batter_year + pitcher_year,
+  data = pa_data_final
+)
+
+summary(m_protection_1)
+
+
+m_protection_1a <- feols(
+  pa_xwOBA ~ next_batter_xwOBA + current_matchup_advantage +
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff |
+    batter_year + pitcher_year + batting_team_game,
+  data = pa_data_final
+)
+
+# Coefficient display names
+coef_map <- list(
+  "next_batter_xwOBA" = "Next Batter xwOBA",
+  "current_matchup_advantage" = "Current Matchup Advantage",
+  "next_matchup_advantage" = "Next Matchup Advantage",
+  "outs_when_up" = "Outs",
+  "run_diff" = "Run Differential",
+  "baserunner_state1B" = "1B",
+  "baserunner_state1B-2B" = "1B-2B",
+  "baserunner_state1B-3B" = "1B-3B",
+  "baserunner_state2B" = "2B",
+  "baserunner_state2B-3B" = "2B-3B",
+  "baserunner_state3B" = "3B",
+  "baserunner_stateLoaded" = "Loaded",
+  "inning_grouped2" = "Inning 2",
+  "inning_grouped3" = "Inning 3",
+  "inning_grouped4" = "Inning 4",
+  "inning_grouped5" = "Inning 5",
+  "inning_grouped6" = "Inning 6",
+  "inning_grouped7" = "Inning 7",
+  "inning_grouped8" = "Inning 8",
+  "inning_grouped9" = "Inning 9",
+  "inning_grouped10+" = "Inning 10+"
+)
+
+# Generate LaTeX table as a string only (no wrapper)
+m_protection_1_output <- texreg(
+  list(m_protection_1, m_protection_1a),
+  custom.coef.map        = coef_map,
+  custom.model.names     = c("Model 1: FE xwOBA + Inning",
+                             "Model 1a: FE xwOBA + Team-Game FE"),
+  stars                  = c(.05, .01, .001),
+  digits                 = 4,
+  caption                = "",               # Handled in LaTeX not here
+  booktabs               = TRUE,
+  table                  = FALSE,            # <-- prevents table wrapper
+  return.string          = TRUE,
+  use.packages           = FALSE,            # <-- Don't include \usepackage
+  sanitize.text.function = function(x) gsub("_", "\\\\_", x, fixed = TRUE)
+)
+
+# Clean up fixed effects block labels
+m_protection_1_output <- gsub("Num\\. groups: batter\\\\_year",
+                              "Num. groups: Batter-Year",
+                              m_protection_1_output)
+m_protection_1_output <- gsub("Num\\. groups: pitcher\\\\_year",
+                              "Num. groups: Pitcher-Year",
+                              m_protection_1_output)
+m_protection_1_output <- gsub("Num\\. groups: batting\\\\_team\\\\_game",
+                              "Num. groups: Batting Team-Game",
+                              m_protection_1_output)
+
+# Write to a clean LaTeX tabular-only file
+writeLines(m_protection_1_output, "outputs/m_protection_1_output.tex")
+```
+
+Let's also make sure our Fixed Effects match our batter xwOBA values.,
+
+```{r}
+# Get the fixed effects
+batter_year_fe <- fixef(m_protection_1a)$batter_year
+
+# Convert to data frame
+batter_year_fe_df <- data.frame(
+  batter_year = names(batter_year_fe),
+  fe_estimate = as.numeric(batter_year_fe)
+)
+
+batter_xwOBA_df <- pa_data_final %>%
+  group_by(batter_year) %>%
+  summarise(batter_xwOBA = unique(batter_xwOBA))
+
+comparison_df <- batter_year_fe_df %>%
+  left_join(batter_xwOBA_df, by = "batter_year")
+
+r_val <- unname( round( cor.test(comparison_df$batter_xwOBA,
+                                 comparison_df$fe_estimate)$estimate , 3) )
+
+
+
+ggplot(comparison_df, aes(x = batter_xwOBA, y = fe_estimate)) +
+  geom_point(alpha = 0.75, color = "#003087", size = 2) +                # navy points
+  geom_smooth(method = "lm",
+              color = "#e63946", linewidth = 1.1,                        # red line
+              fill  = "#F7879A",  alpha = 0.30) +                        # soft pink ribbon
+  labs(
+    title    = "Relationship Between Batter‑Year Fixed Effects and Batter xwOBA",
+    subtitle = paste0("r = ", round(r_val, 3)),                          # correlation here
+    x        = "Batter Season xwOBA",
+    y        = "Batter‑Year Fixed Effect"
+  ) +
+  theme_pub() +
+  theme(
+    plot.title    = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 11),
+    axis.title    = element_text(size = 12),
+    axis.text     = element_text(size = 11)
+  )
+
+```
+
+```{r}
+# Random intercept + slope model
+m_slope <- lmer(
+  pa_xwOBA ~ next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff + inning_grouped + (1 | batter_year) +
+    (1 + next_batter_xwOBA || pitcher_year),
+  data = pa_filtered
+)
+
+summary(m_slope)
+
+# Random intercept only model
+m_intercept <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff + inning_grouped + 
+    (1 | pitcher_year),
+  data = pa_filtered
+)
+
+summary(m_slope)
+anova(m_intercept, m_slope)
+
+AIC(m_intercept, m_slope)
+
+library(performance)
+r2(m_slope)
+```
+
+And `m_protection_2`:
+
+```{r}
+m_protection_2 <- feols(
+  xwOBA_diff ~ next_batter_xwOBA + current_matchup_advantage + 
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff + inning_grouped | 
+    pitcher_year,  # Fixed effects
+  data = pa_data_final
+)
+
+summary(m_protection_2)
+
+m_protection_2a <- feols(
+  xwOBA_diff ~ next_batter_xwOBA + current_matchup_advantage + 
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff | 
+    pitcher_year + batting_team_game,  # Fixed effects
+  data = pa_data_final
+)
+
+summary(m_protection_2a)
+
+
+# Generate LaTeX table string (Models 2 + 2a)
+m_protection_2_output <- texreg(
+  list(m_protection_2, m_protection_2a),
+  custom.coef.map        = coef_map,
+  custom.model.names     = c("Model 2: FE xwOBA Diff + Inning", "Model 2a: FE xwOBA Diff + Team-Game FE"),
+  stars                  = c(.05, .01, .001),
+  digits                 = 4,
+  caption                = "",  # Handled manually
+  booktabs               = TRUE,
+  table                  = FALSE,
+  return.string          = TRUE,
+  use.packages           = FALSE,
+  sanitize.text.function = function(x) gsub("_", "\\\\_", x, fixed = TRUE)
+)
+
+# Fix labels
+m_protection_2_output <- gsub("Num\\. groups: pitcher\\\\_year", "Num. groups: Pitcher-Year", m_protection_2_output)
+m_protection_2_output <- gsub("Num\\. groups: batting\\\\_team\\\\_game", "Num. groups: Batting Team-Game", m_protection_2_output)
+
+# Save LaTeX table output to .tex
+writeLines(m_protection_2_output, "outputs/m_protection_2_output.tex")
+```
+
+Next, let's generate Model 3, `m_protection_slope`, which includes a random slope for `next_batter_xwOBA`. To do this, we will further restrict pitcher counts to be at least 100 Plate Appearances, so that we can more reliably trust the random slope estimates.
+
+```{r}
+# Count number of plate appearances per pitcher per year
+pitcher_counts <- pa_data_final %>%
+  group_by(pitcher, game_year) %>%
+  summarize(n_pa = n(), .groups = "drop") %>%
+  filter(n_pa >= 100)
+
+# Filter dataset to just those pitchers
+pa_filtered <- pa_data_final %>%
+  mutate(pitcher_year = interaction(pitcher, game_year)) %>%
+  filter(pitcher_year %in% interaction(pitcher_counts$pitcher, pitcher_counts$game_year))
+```
+
+```{r}
+m_protection_slope <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff +
+    (1 + next_batter_xwOBA || pitcher_year),  # uncorrelated random effects
+  data = pa_filtered
+)
+
+summary(m_protection_slope)
+
+m_protection_slope_a = lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff + inning_grouped +
+    (1 + next_batter_xwOBA || pitcher_year),  # uncorrelated random effects
+  data = pa_filtered)
+  
+summary(m_protection_slope_a)
+```
+
+And this is the creation of our HTML table for our outputs:
+
+```{r}
+m_protection_slope_output <- texreg(
+  list(m_protection_slope, m_protection_slope_a),
+  custom.coef.map = list(
+    "(Intercept)" = "Intercept",
+    "batter_xwOBA" = "Batter xwOBA",
+    "next_batter_xwOBA" = "Next Batter xwOBA",
+    "current_matchup_advantage" = "Current Matchup Advantage",
+    "next_matchup_advantage" = "Next Matchup Advantage",
+    "outs_when_up" = "Outs",
+    "run_diff" = "Run Differential",
+    "baserunner_state1B" = "1B",
+    "baserunner_state1B-2B" = "1B-2B",
+    "baserunner_state1B-3B" = "1B-3B",
+    "baserunner_state2B" = "2B",
+    "baserunner_state2B-3B" = "2B-3B",
+    "baserunner_state3B" = "3B",
+    "baserunner_stateLoaded" = "Loaded",
+    "inning_grouped2" = "Inning 2",
+    "inning_grouped3" = "Inning 3",
+    "inning_grouped4" = "Inning 4",
+    "inning_grouped5" = "Inning 5",
+    "inning_grouped6" = "Inning 6",
+    "inning_grouped7" = "Inning 7",
+    "inning_grouped8" = "Inning 8",
+    "inning_grouped9" = "Inning 9",
+    "inning_grouped10+" = "Inning 10+"
+  ),
+  custom.model.names = c("Model 3: Random Slope", "Model 3a: Random Slope + Inning"),
+  stars = c(0.1, 0.05, 0.01, 0.001),
+  digits = 4,
+  caption = "",
+  booktabs = TRUE,
+  table = FALSE,
+  return.string = TRUE,
+  use.packages = FALSE,
+  sanitize.text.function = function(x) gsub("_", "\\\\_", x, fixed = TRUE)
+)
+
+# Clean up random slope term and group names
+m_protection_slope_output <- m_protection_slope_output |>
+  (\(x) gsub("pitcher_year\\.1 next_batter_xwOBA", "PitcherYear × Next Batter xwOBA", x))() |>
+  (\(x) gsub("pitcher_year", "PitcherYear", x))()
+
+# Save to LaTeX tabular file
+writeLines(m_protection_slope_output, "outputs/m_protection_slope_output.tex")
+```
+
+```{r}
+# Make binaries for early inning, middle inning, late inning, or extras
+pa_filtered <- pa_filtered %>%
+  mutate(
+    inning_num = as.numeric(as.character(inning)),
+    inning_phase = case_when(
+      inning_num <= 3 ~ "Early",
+      inning_num <= 6 ~ "Middle",
+      inning_num < 10 ~ "Late",
+      TRUE ~ "Extras"
+    ),
+    inning_phase = factor(inning_phase, levels = c("Early", "Middle", "Late", "Extras"))
+  )
+  
+
+m_protection_slope_inning_binaries <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff + inning_phase +
+    (1 + next_batter_xwOBA || pitcher_year) ,
+  data = pa_filtered
+)
+
+summary(m_protection_slope_inning_binaries)
+
+# Refit both models using ML
+m_protection_slope_a_ml <- update(m_protection_slope_a, REML = FALSE)
+m_protection_slope_inning_binaries_ml <- update(m_protection_slope_inning_binaries, REML = FALSE)
+
+# View AIC/BIC
+AIC(m_protection_slope_a_ml, m_protection_slope_inning_binaries_ml)
+BIC(m_protection_slope_a_ml, m_protection_slope_inning_binaries_ml)
+
+```
+
+Doing binary indicators for early, middle, late, and extras innings is not worth it according ot BIC and AIC.
+
+Now, let's inspect the random slopes from Model 3, `m_protection_slope_a`. We will first get year-over-year correlations to see if the random slopes are consistent across years. We will do this by first extracting the random effects from the model, then separating the pitcher and year from the row names. We will then loop through each year pair and calculate the correlation between the random slopes for that year pair.
+
+```{r}
+## Extract and prepare random slope data
+re_df <- ranef(m_protection_slope_a)$pitcher_year %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "pitcher_year") %>%
+  separate(pitcher_year, into = c("pitcher", "year"), sep = "\\.", convert = TRUE)
+
+## Initialize result list
+yoy_results <- list()
+
+## Get list of unique years
+years <- sort(unique(re_df$year))
+
+## Loop through year pairs, skipping 2020-related transitions
+for (i in 1:(length(years) - 1)) {
+  y1 <- years[i]
+  y2 <- years[i + 1]
+  
+  # Skip 2019-2020 and 2020-2021
+  if (y1 == 2019 && y2 == 2020) next
+  if (y1 == 2020 && y2 == 2021) next
+  
+  df_pair <- re_df %>%
+    filter(year %in% c(y1, y2)) %>%
+    select(pitcher, year, next_batter_xwOBA) %>%
+    pivot_wider(names_from = year, values_from = next_batter_xwOBA, names_prefix = "xwOBA_") %>%
+    drop_na()
+  
+  cor_val <- cor(df_pair[[paste0("xwOBA_", y1)]], df_pair[[paste0("xwOBA_", y2)]])
+  
+  yoy_results[[paste0(y1, " to ", y2)]] <- list(
+    from = y1,
+    to = y2,
+    correlation = cor_val,
+    n_shared_pitchers = nrow(df_pair)
+  )
+}
+
+## Add a 2019 to 2021 jump (skip 2020)
+df_2019_2021 <- re_df %>%
+  filter(year %in% c(2019, 2021)) %>%
+  select(pitcher, year, next_batter_xwOBA) %>%
+  pivot_wider(names_from = year, values_from = next_batter_xwOBA, names_prefix = "xwOBA_") %>%
+  drop_na()
+
+cor_2019_2021 <- cor(df_2019_2021$xwOBA_2019, df_2019_2021$xwOBA_2021)
+
+yoy_results[["2019 to 2021"]] <- list(
+  from = 2019,
+  to = 2021,
+  correlation = cor_2019_2021,
+  n_shared_pitchers = nrow(df_2019_2021)
+)
+
+## Convert to dataframe
+yoy_df <- bind_rows(yoy_results, .id = "year_pair")
+
+## Clean and order labels
+yoy_df <- yoy_df %>%
+  mutate(
+    year_label = factor(year_pair, levels = year_pair[order(from)]),
+    z = atanh(correlation),  # Fisher z-transform
+    se = 1 / sqrt(n_shared_pitchers - 3),
+    z_low = z - 1.96 * se,
+    z_high = z + 1.96 * se,
+    ci_lower = tanh(z_low),
+    ci_upper = tanh(z_high)
+  )
+
+## Plot with CI and cleaner styling
+yoy_graph <- ggplot(yoy_df, aes(x = year_label, y = correlation)) +
+  geom_col(fill = "#003087") +  # Yankee Blue
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, color = "black") +
+  geom_text(aes(label = round(correlation, 3)), vjust = 1.5, color = "white", size = 4) +
+  scale_y_continuous(limits = c(0, 1), expand = expansion(mult = c(0, 0.05))) +
+  labs(
+    title = "Year-over-Year Correlation of\nRandom Slopes (Next Batter xwOBA)",
+    x = "Year Pair",
+    y = "Correlation"
+  ) +
+  theme_pub() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.text = element_text(size = 11),
+    axis.title = element_text(size = 12)
+  )
+
+# Save Graph to Outputs
+ggsave("outputs/yoy_correlation_plot.png", plot = yoy_graph, width = 8, height = 5)
+```
+
+We can also graph just the 2023-2024 pairing as an example.
+
+```{r}
+# 1. Prepare re_23_24
+re_23_24 <- re_df %>%
+  filter(year %in% c(2023, 2024)) %>%
+  select(pitcher, year, next_batter_xwOBA) %>%
+  pivot_wider(names_from = year, values_from = next_batter_xwOBA, names_prefix = "xwOBA_") %>%
+  drop_na()
+
+# 2. Load Chadwick data to get pitcher names
+base_url <- "https://raw.githubusercontent.com/chadwickbureau/register/master/data/"
+suffixes <- c(0:9, letters[1:6])
+file_urls <- paste0(base_url, "people-", suffixes, ".csv")
+
+people <- map_dfr(file_urls, ~ read_csv(.x, col_types = cols(.default = "c")))
+
+people_clean <- people %>%
+  select(key_mlbam, name_first, name_last) %>%
+  mutate(key_mlbam = as.integer(key_mlbam))
+
+# 3. Merge names into re_23_24
+# Join pitcher names to the 2023–2024 data
+re_23_24_named <- re_23_24 %>%
+  left_join(people_clean, by = c("pitcher" = "key_mlbam")) %>%
+  mutate(
+    label = paste0(
+      name_first, " ", name_last, "<br>",
+      "2023: ", round(xwOBA_2023, 4), "<br>",
+      "2024: ", round(xwOBA_2024, 4), "<br>",
+      "MLBAM ID: ", pitcher
+    )
+  )
+
+# Fit the linear model
+model <- lm(xwOBA_2024 ~ xwOBA_2023, data = re_23_24_named)
+
+# Create prediction data
+x_vals <- seq(min(re_23_24_named$xwOBA_2023), max(re_23_24_named$xwOBA_2023), length.out = 100)
+preds <- predict(model, newdata = data.frame(xwOBA_2023 = x_vals), interval = "confidence")
+
+pred_df <- data.frame(
+  xwOBA_2023 = x_vals,
+  fit = preds[, "fit"],
+  lwr = preds[, "lwr"],
+  upr = preds[, "upr"]
+)
+
+# Base ggplot with updated color scheme
+gg_base <- ggplot(re_23_24_named, aes(x = xwOBA_2023, y = xwOBA_2024, text = label)) +
+  geom_point(alpha = 0.75, color = "#003087", size = 2) +  # navy points
+  geom_ribbon(data = pred_df, aes(x = xwOBA_2023, ymin = lwr, ymax = upr),
+              inherit.aes = FALSE, fill = "#F7879A", alpha = 0.3) +  # soft ribbon
+  geom_line(data = pred_df, aes(x = xwOBA_2023, y = fit),
+            inherit.aes = FALSE, color = "#e63946", linewidth = 1.1) +  # steel blue line
+  labs(
+    title = "Pitcher Susceptibility to Lineup Protection (2023 vs. 2024)",
+    subtitle = paste0("r = ", round(cor(re_23_24_named$xwOBA_2023, re_23_24_named$xwOBA_2024), 3)),
+    x = "Random Slope on Next Batter xwOBA (2023)",
+    y = "Random Slope on Next Batter xwOBA (2024)"
+  ) +
+  theme_pub() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 11),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 11)
+  )
+
+ggsave("outputs/pitcher_susceptibility_plot.png", plot = gg_base, width = 8, height = 5)
+
+#  Convert to plotly
+plotly_graph <- ggplotly(gg_base, tooltip = "text") %>%
+  layout(
+    title = list(
+      text = paste0("Pitcher Susceptibility to Lineup Protection (2023 vs. 2024)<br><sup>r = ", 
+                    round(cor(re_23_24_named$xwOBA_2023, re_23_24_named$xwOBA_2024), 3), "</sup>"),
+      font = list(size = 18, family = "Arial", color = "black")
+    ),
+    xaxis = list(title = list(text = "Random Slope on Next Batter xwOBA (2023)", font = list(size = 14, family = "Arial", color = "grey"))),
+    yaxis = list(title = list(text = "Random Slope on Next Batter xwOBA (2024)", font = list(size = 14, family = "Arial", color = "grey"))),
+    font = list(family = "Arial", size = 12, color = "black")
+  )
+```
+
+We'd also like to test for see if our correlations are all significantly greater than 0.
+
+```{r}
+test_correlations <- function(cor_df) {
+  cor_df %>%
+    mutate(
+      t_stat = correlation * sqrt(n_shared_pitchers - 2) / sqrt(1 - correlation^2),
+      df = n_shared_pitchers - 2,
+      p_value = pt(t_stat, df = df, lower.tail = FALSE),  # one-sided test: greater than 0
+      significant = ifelse(p_value < 0.05, "Yes", "No")
+    ) %>%
+    select(year_pair, correlation, t_stat, df, p_value)
+}
+
+cor_test_results <- test_correlations(yoy_df)
+print(cor_test_results)
+```
+
+Let's save it as an HTML table.
+
+```{r}
+# Prepare the data
+cor_test_results_clean <- cor_test_results %>%
+  mutate(
+    correlation = round(correlation, 3),
+    t_stat = round(t_stat, 2),
+    p_value = signif(p_value, 3)
+  ) %>%
+  mutate(from = as.numeric(sub("^(\\d{4}).*", "\\1", year_pair))) %>%
+  arrange(from) %>%
+  select(-from)
+
+# Create the table
+gt_table <- cor_test_results_clean %>%
+  gt() %>%
+  tab_header(
+    title = md("**One-Sided t-Tests for Year-over-Year Correlation of Random Slopes**"),
+    subtitle = md("Each test evaluates whether the correlation between random slopes for a given year pair is significantly greater than 0.")
+  ) %>%
+  cols_label(
+    year_pair = "Year Pair",
+    correlation = "Correlation",
+    t_stat = "t Statistic",
+    df = "Degrees of Freedom",
+    p_value = "p-value"
+  ) %>%
+  fmt_number(columns = c(correlation, p_value), decimals = 3) %>%
+  fmt_number(columns = t_stat, decimals = 2) %>%
+  tab_options(
+    table.font.names = "Times",
+    table.font.size = 12,
+    heading.title.font.size = 14,
+    heading.subtitle.font.size = 12,
+    table.align = "center",
+    data_row.padding = px(6),
+    column_labels.font.weight = "bold"
+  )
+
+# Save as HTML
+gtsave(gt_table, "outputs/correlation_t_tests.tex")
+```
+
+Let's also do it on individual years. We will do this by filtering `pa_filtered` to each year, then running the model with a random slope for `next_batter_xwOBA`. We will then extract the random slopes and save them in a wide format.
+
+```{r}
+m_protection_slope_2015 <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff +
+    (1 + next_batter_xwOBA || pitcher),  # uncorrelated random effects
+  data = pa_filtered %>% filter(game_year == 2015)
+)
+
+m_protection_slope_2016 <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff +
+    (1 + next_batter_xwOBA || pitcher),  # uncorrelated random effects
+  data = pa_filtered %>% filter(game_year == 2016)
+)
+
+m_protection_slope_2017 <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff +
+    (1 + next_batter_xwOBA || pitcher),  # uncorrelated random effects
+  data = pa_filtered %>% filter(game_year == 2017)
+)
+
+m_protection_slope_2018 <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff +
+    (1 + next_batter_xwOBA || pitcher),  # uncorrelated random effects
+  data = pa_filtered %>% filter(game_year == 2018)
+)
+
+m_protection_slope_2019 <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff +
+    (1 + next_batter_xwOBA || pitcher),  # uncorrelated random effects
+  data = pa_filtered %>% filter(game_year == 2019)
+)
+
+m_protection_slope_2021 <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff +
+    (1 + next_batter_xwOBA || pitcher),  # uncorrelated random effects
+  data = pa_filtered %>% filter(game_year == 2021)
+)
+
+m_protection_slope_2022 <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff +
+    (1 + next_batter_xwOBA || pitcher),  # uncorrelated random effects
+  data = pa_filtered %>% filter(game_year == 2022)
+)
+
+m_protection_slope_2023 <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff +
+    (1 + next_batter_xwOBA || pitcher),  # uncorrelated random effects
+  data = pa_filtered %>% filter(game_year == 2023)
+)
+
+m_protection_slope_2024 <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + next_matchup_advantage +
+    baserunner_state + outs_when_up + run_diff +
+    (1 + next_batter_xwOBA || pitcher),  # uncorrelated random effects
+  data = pa_filtered %>% filter(game_year == 2024)
+)
+```
+
+```{r}
+extract_slopes <- function(model, year) {
+  ranef(model, condVar = FALSE)$pitcher %>%
+    rownames_to_column("pitcher") %>%
+    select(pitcher, slope = `next_batter_xwOBA`) %>%
+    mutate(pitcher = as.integer(pitcher)) %>%
+    rename(!!paste0("xwOBA_", year) := slope)
+}
+
+s2015 <- extract_slopes(m_protection_slope_2015, 2015)
+s2016 <- extract_slopes(m_protection_slope_2016, 2016)
+s2017 <- extract_slopes(m_protection_slope_2017, 2017)
+s2018 <- extract_slopes(m_protection_slope_2018, 2018)
+s2019 <- extract_slopes(m_protection_slope_2019, 2019)
+s2021 <- extract_slopes(m_protection_slope_2021, 2021)
+s2022 <- extract_slopes(m_protection_slope_2022, 2022)
+s2023 <- extract_slopes(m_protection_slope_2023, 2023)
+s2024 <- extract_slopes(m_protection_slope_2024, 2024)
+
+slope_wide <- reduce(list(s2015, s2016, s2017, s2018, s2019, s2021, s2022, s2023, s2024), full_join, by = "pitcher")
+```
+
+```{r}
+# 1. Get list of year columns in sorted order
+year_cols <- sort(names(slope_wide)[-1])  # remove 'pitcher'
+
+# 2. Initialize empty results list
+yoy_corrs <- list()
+
+# 3. Loop through year pairs
+for (i in 1:(length(year_cols) - 1)) {
+  from_col <- year_cols[i]
+  to_col <- year_cols[i + 1]
+  
+  # Skip 2019–2020 and 2020–2021
+  if (from_col == "xwOBA_2019" && to_col == "xwOBA_2021") next
+  
+  df_pair <- slope_wide %>%
+    select(pitcher, !!from_col, !!to_col) %>%
+    drop_na()
+  
+  cor_val <- cor(df_pair[[2]], df_pair[[3]])
+  
+  yoy_corrs[[paste(from_col, to_col, sep = "_to_")]] <- tibble(
+    from = as.integer(gsub("xwOBA_", "", from_col)),
+    to = as.integer(gsub("xwOBA_", "", to_col)),
+    correlation = cor_val,
+    n_pitchers = nrow(df_pair)
+  )
+}
+
+# 4. Combine all into a final dataframe
+yoy_corrs_df <- bind_rows(yoy_corrs)
+
+# 5. Add a 2019 to 2021 jump (skip 2020)
+df_2019_2021 <- slope_wide %>%
+  select(pitcher, xwOBA_2019, xwOBA_2021) %>%
+  drop_na()
+
+cor_2019_2021 <- cor(df_2019_2021$xwOBA_2019, df_2019_2021$xwOBA_2021)
+
+yoy_corrs_df <- bind_rows(yoy_corrs_df, tibble(
+  from = 2019,
+  to = 2021,
+  correlation = cor_2019_2021,
+  n_pitchers = nrow(df_2019_2021)
+))
+
+# Put it in order
+yoy_corrs_df <- yoy_corrs_df %>%
+  arrange(from, to) %>%
+  mutate(
+    correlation = round(correlation, 3)
+  )
+
+yoy_corrs_df = yoy_corrs_df %>%
+  select(-year_pair)
+```
+
+```{r}
+test_correlations <- function(cor_df) {
+  cor_df %>%
+    mutate(
+      t_stat = correlation * sqrt(n_pitchers - 2) / sqrt(1 - correlation^2),
+      df = n_pitchers - 2,
+      p_value = pt(t_stat, df = df, lower.tail = FALSE)  # <- removed extra closing parenthesis here
+    ) %>%
+    select(from, to, correlation, t_stat, df, p_value)
+}
+
+```
+
+```{r}
+# Prepare the data
+cor_test_results_clean <- cor_test_results %>%
+  mutate(
+    correlation = round(correlation, 3),
+    t_stat = round(t_stat, 2),
+    p_value = signif(p_value, 3)
+  )
+
+# Create gt table
+gt_table <- cor_test_results_clean %>%
+  gt() %>%
+  tab_header(
+    title = md("**One-Sided t-Tests for Year-over-Year Correlation of Random Slopes**"),
+    subtitle = md("Each test evaluates whether the correlation between random slopes for a given year pair is significantly greater than 0.")
+  ) %>%
+  cols_label(
+    year_pair = "Year Pair",
+    correlation = "Correlation",
+    t_stat = "t Statistic",
+    df = "Degrees of Freedom",
+    p_value = "p-value"
+  ) %>%
+  fmt_number(columns = c(correlation, p_value), decimals = 3) %>%
+  fmt_number(columns = t_stat, decimals = 2) %>%
+  tab_options(
+    table.font.names = "Times",
+    table.font.size = 12,
+    heading.title.font.size = 14,
+    heading.subtitle.font.size = 12,
+    table.align = "center",
+    data_row.padding = px(6),
+    column_labels.font.weight = "bold"
+  )
+
+# Save LaTeX
+gtsave(gt_table, "outputs/correlation_t_tests_year_specific.tex")
+
+```
+
+Next, we want to compute top/bottom 10 lists for the random slopes for each pitcher from 2015-2024.
+
+First, we will create a dataframe with the random slopes for each pitcher and year.
+
+```{r}
+pitcher_pa_counts <- pa_data_final %>%
+  group_by(pitcher, game_year) %>%
+  summarize(pa_count = n(), .groups = "drop")
+```
+
+Next, we can merge in random efffects data.
+
+```{r}
+re_df_weighted <- re_df %>%
+  mutate(pitcher = factor(pitcher), year = factor(year)) %>%
+  left_join(pitcher_pa_counts, by = c("pitcher", "year" = "game_year")) %>%
+  filter(!is.na(pa_count))  # drop missing matches just in case
+```
+
+Now, we can calculate the weighted slope for each pitcher. We will use the `weighted.mean` function to get the weighted average of the random slopes, using the plate appearance counts as weights.
+
+```{r}
+people_clean = people_clean %>%
+  mutate(key_mlbam = factor(key_mlbam))
+pitcher_sensitivity_weighted <- re_df_weighted %>%
+  group_by(pitcher) %>%
+  summarize(
+    weighted_slope = weighted.mean(next_batter_xwOBA, pa_count, na.rm = TRUE),
+    total_pa = sum(pa_count, na.rm = TRUE),
+    n_years = n()
+  ) %>%
+  left_join(people_clean, by = c("pitcher" = "key_mlbam")) %>%
+  mutate(name = paste(name_first, name_last)) %>%
+  select(name, pitcher, weighted_slope, total_pa, n_years)
+```
+
+Now, we can get the top and bottom 10 pitchers by weighted slope.
+
+```{r}
+pitcher_sensitivity_weighted <- pitcher_sensitivity_weighted %>%
+  filter(total_pa >= 200)
+
+top_10_weighted <- pitcher_sensitivity_weighted %>%
+  arrange(desc(weighted_slope)) %>% 
+  slice(1:10)
+
+bottom_10_weighted <- pitcher_sensitivity_weighted %>%
+  arrange(weighted_slope) %>% 
+  slice(1:10)
+```
+
+We can also do this just for 2024:
+
+```{r}
+# Ensure the join worked and filter for 2024
+re_df_2024_weighted <- re_df %>%
+  mutate(pitcher = factor(pitcher), year = factor(year)) %>%
+  left_join(pitcher_pa_counts, by = c("pitcher", "year" = "game_year")) %>%
+  filter(year == 2024, !is.na(pa_count))
+
+# Compute weighted average slope per pitcher (though for 2024 there is only one slope per pitcher)
+# So we just keep relevant columns and sort
+top_bottom_2024 <- re_df_2024_weighted %>%
+  select(pitcher, pa_count, next_batter_xwOBA) %>%
+  arrange(desc(next_batter_xwOBA))  # descending order for positive sensitivities
+
+# Top 10 most positively affected pitchers
+top_10 <- top_bottom_2024 %>% slice(1:10) %>%
+  left_join(people_clean, by = c("pitcher" = "key_mlbam")) %>%
+  select(name_first, name_last, pitcher, next_batter_xwOBA, pa_count)
+
+# Bottom 10 most negatively affected pitchers
+bottom_10 <- top_bottom_2024 %>% arrange(next_batter_xwOBA) %>% slice(1:10) %>%
+  left_join(people_clean, by = c("pitcher" = "key_mlbam")) %>%
+  select(name_first, name_last, pitcher, next_batter_xwOBA, pa_count)
+
+
+# Top 10 negatively affected pitchers
+top_10_re_table <- top_10 %>%
+  gt() %>%
+  tab_header(
+    title = md("**Top 10 Pitchers Negatively Affected by Lineup Protection (2024)**"),
+    subtitle = md("Ranked by Random Slope on Next Batter xwOBA")
+  ) %>%
+  cols_label(
+    name_first = "First Name",
+    name_last = "Last Name",
+    pitcher = "MLBAM ID",
+    next_batter_xwOBA = "Random Slope",
+    pa_count = "Plate Appearances"
+  ) %>%
+  fmt_number(columns = next_batter_xwOBA, decimals = 4) %>%
+  fmt_number(columns = pa_count, decimals = 0, sep_mark = ",") %>%
+  tab_options(
+    table.font.names = "Times",
+    table.font.size = 12,
+    heading.title.font.size = 14,
+    heading.subtitle.font.size = 12,
+    table.align = "center",
+    data_row.padding = px(6),
+    column_labels.font.weight = "bold"
+  )
+
+# Save top 10 table
+gtsave(top_10_re_table, "outputs/top_10_lineup_protection_2024.tex")
+
+# Top 10 positively affected pitchers
+bottom_10_re_table <- bottom_10 %>%
+  gt() %>%
+  tab_header(
+    title = md("**Top 10 Pitchers Positively Affected by Lineup Protection (2024)**"),
+    subtitle = md("Ranked by Random Slope on Next Batter xwOBA")
+  ) %>%
+  cols_label(
+    name_first = "First Name",
+    name_last = "Last Name",
+    pitcher = "MLBAM ID",
+    next_batter_xwOBA = "Random Slope",
+    pa_count = "Plate Appearances"
+  ) %>%
+  fmt_number(columns = next_batter_xwOBA, decimals = 4) %>%
+  fmt_number(columns = pa_count, decimals = 0, sep_mark = ",") %>%
+  tab_options(
+    table.font.names = "Times",
+    table.font.size = 12,
+    heading.title.font.size = 14,
+    heading.subtitle.font.size = 12,
+    table.align = "center",
+    data_row.padding = px(6),
+    column_labels.font.weight = "bold"
+  )
+
+# Save bottom 10 table
+gtsave(bottom_10_re_table, "outputs/bottom_10_lineup_protection_2024.tex")
+```
+
+#### 1B. Drivers of Overall Offensive Effect
+
+Let's now create `m_protection_walk`, `m_protection_strikeout`, `m_protection_hit`, `m_protection_xbh`, and `m_protection_ip_out` to try to decompose the drivers of our coefficients in the models above.
+
+We can first add `is_hit` and `is_ip_out` to our dataset.
+
+```{r}
+pa_data_final <- pa_data_final %>%
+  mutate(final_event = tolower(final_event)) %>%
+  mutate(
+    is_hit = final_event %in% c("single", "double", "triple", "home_run"),
+    is_single = final_event == "single",
+    is_ip_out = final_event %in% c(
+      "field_out", "force_out", "grounded_into_double_play",
+      "strikeout", "strikeout_double_play", "lineout", "flyout",
+      "fielders_choice", "fielders_choice_out", "triple_play"
+    )
+  )
+```
+
+Now, we can make our models: `m_protection_walk`, `m_protection_strikeout`, `m_protection_xbh`, `m_protection_hit`, `m_protection_ip_out`
+
+```{r}
+m_protection_walk <- feglm(
+  is_walk ~ next_batter_xwOBA + current_matchup_advantage +
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff |
+    batter_year + pitcher_year + batting_team_game,
+  data = pa_data_final,
+  family = "binomial"
+)
+
+m_protection_strikeout <- feglm(
+  is_strikeout ~ next_batter_xwOBA + current_matchup_advantage +
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff |
+    batter_year + pitcher_year + batting_team_game,
+  data = pa_data_final,
+  family = "binomial"
+)
+
+m_protection_xbh <- feglm(
+  is_extra_base_hit ~ next_batter_xwOBA + current_matchup_advantage +
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff |
+    batter_year + pitcher_year + batting_team_game,
+  data = pa_data_final,
+  family = "binomial"
+)
+
+m_protection_single <- feglm(
+  is_single ~ next_batter_xwOBA + current_matchup_advantage +
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff |
+    batter_year + pitcher_year + batting_team_game,
+  data = pa_data_final,
+  family = "binomial"
+)
+
+m_protection_ip_out <- feglm(
+  is_ip_out ~ next_batter_xwOBA + current_matchup_advantage +
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff |
+    batter_year + pitcher_year + batting_team_game,
+  data = pa_data_final,
+  family = "binomial"
+)
+```
+
+And we can make a texreg table:
+
+```{r}
+m_protection_event_output = texreg(
+  list(
+    m_protection_walk,
+    m_protection_strikeout,
+    m_protection_xbh,
+    m_protection_single,
+    m_protection_ip_out
+  ),
+  custom.model.names = c("Walk", "Strikeout", "XBH", "Single", "In-Play Out"),
+  stars = c(0.001, 0.01, 0.05, 0.1),
+  custom.note = "Standard errors in parentheses. *** p < 0.001, ** p < 0.01, * p < 0.05, . p < 0.1",
+  custom.coef.map = list(
+    "next_batter_xwOBA" = "Next Batter xwOBA",
+    "current_matchup_advantage" = "Current Matchup",
+    "next_matchup_advantage" = "Next Matchup",
+    "baserunner_state1B" = "1B",
+    "baserunner_state1B-2B" = "1B-2B",
+    "baserunner_state1B-3B" = "1B-3B",
+    "baserunner_state2B" = "2B",
+    "baserunner_state2B-3B" = "2B-3B",
+    "baserunner_state3B" = "3B",
+    "baserunner_stateLoaded" = "Loaded",
+    "outs_when_up" = "Outs",
+    "run_diff" = "Run Diff"
+  ),
+  digits = 4,
+  caption = "Table: Fixed-Effects Linear Models Predicting Distinct PA Events",
+  single.row = TRUE
+)
+
+# Sub out batter_year, pitcher_year, and batting_team_game
+m_protection_event_output <- gsub(
+  "Num\\. groups: batter\\\\_year",
+  "Num. groups: Batter-Year",
+  m_protection_event_output
+)
+
+m_protection_event_output <- gsub(
+  "Num\\. groups: pitcher\\\\_year",
+  "Num. groups: Pitcher-Year",
+  m_protection_event_output
+)
+
+m_protection_event_output <- gsub(
+  "Num\\. groups: batting\\\\_team\\\\_game",
+  "Num. groups: Batting Team-Game",
+  m_protection_event_output
+)
+
+writeLines(
+  m_protection_event_output,
+  "outputs/m_protection_event_output.tex"
+)
+```
+
+```{r}
+library(tidyverse)
+library(pubtheme)
+coef_df <- tribble(
+  ~outcome,        ~beta,    ~se,
+  "Walk",          -0.6862,  0.1950,
+  "Strikeout",      0.0356,  0.1334,
+  "Extra-base hit", -0.5652,  0.1902,
+  "Single",        -0.0587,  0.1448,
+  "In-play out",    0.4238,  0.1114
+) %>% 
+  mutate(
+    # scale to +0.10 on-deck xwOBA
+    estimate = beta * 0.10,
+    se       = se   * 0.10,
+    ymin     = estimate - 1.96 * se,
+    ymax     = estimate + 1.96 * se
+  )
+
+ggplot(coef_df, aes(x = reorder(outcome, estimate), y = estimate)) +
+  geom_col(width = 0.6, fill = "#133d7a") +
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0.15) +
+  coord_flip() +
+  labs(title = "Coefficient of +0.100 on-deck xwOBA with key PA outcomes",
+       x = NULL,
+       y = "Change in probability (proportion points)") +
+  theme_pub() +
+  theme(panel.grid.major.y = element_blank())
+```
+
+
+## II. Increased Interpretability: xBA
+
+For increased interpretability, we will also make a model for xBA with the same structure as `m_protection_xwOBA`. This will allow us to see how the next batter's xwOBA affects the current batter's xBA.
+
+```{r}
+# Make sure all strikeouts are 0
+pa_data_final <- pa_data_final %>%
+  mutate(
+    pa_xBA = ifelse(final_event %in% c("strikeout", "strikeout_double_play"), 0, pa_xBA)
+  )
+
+m_protection_xBA <- feols(
+  pa_xBA ~ next_batter_xwOBA + current_matchup_advantage + 
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff | 
+    batter_year + pitcher_year + batting_team_game,  # Fixed effects
+  data = pa_data_final
+)
+
+m_protection_xBA_a <- feols(
+  pa_xBA ~ next_batter_xwOBA + current_matchup_advantage + 
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff + inning_grouped | 
+    batter_year + pitcher_year,  # Fixed effects
+  data = pa_data_final
+)
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+library(texreg)
+m_protection_xBA_output =
+texreg(
+  list(m_protection_xBA_a, m_protection_xBA), 
+  stars = c(0.001, 0.01, 0.05, 0.1),
+  digits = 4,
+  custom.coef.map = list(
+    "next_batter_xwOBA" = "Next Batter xwOBA",
+    "current_matchup_advantage" = "Current Matchup Advantage",
+    "next_matchup_advantage" = "Next Matchup Advantage",
+    "baserunner_state1B" = "1B",
+    "baserunner_state1B-2B" = "1B-2B",
+    "baserunner_state1B-3B" = "1B-3B",
+    "baserunner_state2B" = "2B",
+    "baserunner_state2B-3B" = "2B-3B",
+    "baserunner_state3B" = "3B",
+    "baserunner_stateLoaded" = "Loaded",
+    "outs_when_up" = "Outs",
+    "run_diff" = "Run Diff",
+    "inning_grouped2" = "Inning 2",
+    "inning_grouped3" = "Inning 3",
+    "inning_grouped4" = "Inning 4",
+    "inning_grouped5" = "Inning 5",
+    "inning_grouped6" = "Inning 6",
+    "inning_grouped7" = "Inning 7",
+    "inning_grouped8" = "Inning 8",
+    "inning_grouped9" = "Inning 9",
+    "inning_grouped10+" = "Inning 10+"
+  ),
+  custom.model.names = c("Model 5: FE PA xBA + Inning", "Model 5a: FE PA xBA + Team-Game FE"),
+  custom.note = "Standard errors clustered by batter-year. *** p < 0.001, ** p < 0.01, * p < 0.05, . p < 0.1",
+  caption = "Table: Fixed-Effects Linear Model Predicting Expected Batting Average (xBA)",
+  single.row = TRUE
+)
+
+# Sub out batter_year, pitcher_year, and batting_team_game
+m_protection_xBA_output <- gsub(
+  "Num\\. groups: batter\\\\_year",
+  "Num. groups: Batter-Year",
+  m_protection_xBA_output
+)
+
+m_protection_xBA_output <- gsub(
+  "Num\\. groups: pitcher\\\\_year",
+  "Num. groups: Pitcher-Year",
+  m_protection_xBA_output
+)
+
+m_protection_xBA_output <- gsub(
+  "Num\\. groups: batting\\\\_team\\\\_game",
+  "Num. groups: Batting Team-Game",
+  m_protection_xBA_output
+)
+
+writeLines(
+  m_protection_xBA_output,
+  "outputs/m_protection_xBA_output.tex"
+)
+```
+
+## III. Model Selection
+
+For Model Selection, we will want to compare `m_protection_1` and `m_protection_slope`.
+
+```{r}
+library(fixest)
+library(lme4)
+library(rsample)
+library(yardstick)
+library(dplyr)
+library(purrr)
+
+# Use filtered dataset
+common_data <- pa_filtered  # or define it explicitly if needed
+
+# Create 5-fold CV splits
+set.seed(123)
+folds <- vfold_cv(pa_filtered, v = 5)
+
+# Function to fit feols model and return RMSE
+fit_feols_rmse <- function(split) {
+  train <- analysis(split)
+  test <- assessment(split)
+  
+  model <- feols(
+    pa_xwOBA ~ next_batter_xwOBA + current_matchup_advantage + 
+      next_matchup_advantage + baserunner_state + outs_when_up + run_diff | 
+      batter_year + pitcher_year,
+    data = train
+  )
+  
+  preds <- predict(model, newdata = test)
+  rmse_vec(truth = test$pa_xwOBA, estimate = preds)
+}
+
+# Function to fit lmer model and return RMSE
+fit_lmer_rmse <- function(split) {
+  train <- analysis(split)
+  test <- assessment(split)
+  
+  model <- lmer(
+    pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+      current_matchup_advantage + next_matchup_advantage +
+      baserunner_state + outs_when_up + run_diff +
+      (1 + next_batter_xwOBA || pitcher_year),
+    data = train
+  )
+  
+  preds <- predict(model, newdata = test, allow.new.levels = TRUE)
+  rmse_vec(truth = test$pa_xwOBA, estimate = preds)
+}
+
+# Apply to all folds
+results <- folds %>%
+  mutate(
+    RMSE_feols = map_dbl(splits, fit_feols_rmse),
+    RMSE_lmer = map_dbl(splits, fit_lmer_rmse)
+  )
+
+# Summarize results
+results_summary <- results %>%
+  summarise(
+    mean_feols = mean(RMSE_feols),
+    mean_lmer = mean(RMSE_lmer)
+  )
+
+results
+
+```
+
+We will now want to see which fixed effects actually matter for `m_protection_slope`, and we will perform to see if dropping each of the fixed effects significantly changes the model fit.
+
+Or we can
+
+```{r}
+# Get drop1 output
+drop1_output <- drop1(m_protection_slope_a, test = "F")
+
+# Step 1: Convert drop1 output to a usable tibble
+drop1_df <- drop1_output %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Dropped_Term") %>%
+  filter(Dropped_Term != "<none>") %>%
+  mutate(
+    Pretty_Term = case_when(
+      Dropped_Term == "batter_xwOBA" ~ "Batter xwOBA",
+      Dropped_Term == "next_batter_xwOBA" ~ "Next Batter xwOBA",
+      Dropped_Term == "current_matchup_advantage" ~ "Current Matchup",
+      Dropped_Term == "next_matchup_advantage" ~ "Next Matchup",
+      Dropped_Term == "baserunner_state" ~ "Baserunner State",
+      Dropped_Term == "outs_when_up" ~ "Outs",
+      Dropped_Term == "run_diff" ~ "Run Diff",
+      Dropped_Term == "inning_grouped" ~ "Inning",
+      TRUE ~ Dropped_Term
+    ),
+    Significance = case_when(
+      `Pr(>F)` < 0.001 ~ "***",
+      `Pr(>F)` < 0.01  ~ "**",
+      `Pr(>F)` < 0.05  ~ "*",
+      `Pr(>F)` < 0.1   ~ ".",
+      TRUE             ~ ""
+    )
+  )
+
+# Step 2: Build GT table
+drop1_gt <- drop1_df %>%
+  gt() %>%
+  tab_header(
+    title = md("**Fixed Effect Importance via Drop-One F-tests**"),
+    subtitle = md("Each test evaluates whether removing the fixed effect significantly worsens model fit")
+  ) %>%
+  cols_label(
+    Pretty_Term = "Dropped Term",
+    `Sum Sq` = "Sum Sq",
+    `Mean Sq` = "Mean Sq",
+    `NumDF` = "Num DF",
+    `DenDF` = "Den DF",
+    `F value` = "F Statistic",
+    `Pr(>F)` = "p-value",
+    Significance = "Signif."
+  ) %>%
+  fmt_number(columns = c(`Sum Sq`, `Mean Sq`, `F value`, `Pr(>F)`), decimals = 2) %>%
+  fmt_number(columns = c(`NumDF`, `DenDF`), decimals = 0, use_seps = TRUE) %>%
+  tab_source_note(md("Significance codes: *** p < 0.001, ** p < 0.01, * p < 0.05, . p < 0.1")) %>%
+  opt_table_font(font = list(google_font("Times New Roman"), default_fonts())) %>%
+  cols_align(align = "center", columns = everything())
+
+# Step 3: Save as LaTeX
+gtsave(drop1_gt, "outputs/blog_1_model_selection.tex")
+```
+
+Given this output, we can exclude Next Matchup Advantage and Run Differential from our final model, given that they do not significantly worsen model fit when they are omitted.
+
+We will create two final models: `m_protection_blog_1_fe` and `m_protection_blog1_re`.
+
+```{r}
+m_protection_blog_1_fe <- feols(
+  pa_xwOBA ~ next_batter_xwOBA + current_matchup_advantage +
+    baserunner_state + outs_when_up | batter_year + pitcher_year,
+  data = pa_data_final
+)
+```
+
+```{r}
+m_protection_blog_1_re <- lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA + current_matchup_advantage +
+    baserunner_state + outs_when_up +
+    (1 + next_batter_xwOBA || pitcher_year),
+  data = pa_filtered
+)
+```
+
+Then, we will create an HTMLReg table to compare the two models.
+
+```{r}
+# 1. Clean model names
+custom_model_names <- c("Model 1: Fixed Effects", "Model 2: Random Effects")
+
+# 2. Clean coefficient names
+custom_coefs <- list(
+  "(Intercept)" = "Intercept",
+  "batter_xwOBA" = "Batter xwOBA",
+  "next_batter_xwOBA" = "Next Batter xwOBA",
+  "current_matchup_advantage" = "Current Matchup",
+  "baserunner_state1B" = "1B",
+  "baserunner_state1B-2B" = "1B-2B",
+  "baserunner_state1B-3B" = "1B-3B",
+  "baserunner_state2B" = "2B",
+  "baserunner_state2B-3B" = "2B-3B",
+  "baserunner_state3B" = "3B",
+  "baserunner_stateLoaded" = "Loaded",
+  "outs_when_up" = "Outs"
+)
+
+# 3. Create HTML regression table
+blog_1_final_output = htmlreg(
+  list(m_protection_blog_1_fe, m_protection_blog_1_re),
+  custom.model.names = custom_model_names,
+  custom.coef.map = custom_coefs,
+  stars = c(0.001, 0.01, 0.05, 0.1),
+  custom.note = "Standard errors in parentheses. *** p < 0.001, ** p < 0.01, * p < 0.05, . p < 0.1",
+  caption = "Comparison of Fixed and Random Effects Models for Plate Appearance xwOBA",
+  single.row = TRUE,
+  digits = 4
+)
+
+# Post-process using base R compatible piping
+blog_1_final_output <- blog_1_final_output |>
+  (\(x) gsub("pitcher_year\\.1 next_batter_xwOBA", "PitcherYear × Next Batter xwOBA", x))() |>
+  (\(x) gsub("pitcher_year", "PitcherYear", x))() |>
+  (\(x) gsub("batter_year", "BatterYear", x))()
+
+writeLines(blog_1_final_output, "outputs/blog_1_final_output.html")
+```
+
+After initial analysis, I have decided to add `batting_team`, `pitching_team`,`home_team` and `away_team` to my `pa_data_final` to see if there's any team or game level effects I need to account for.
+
+We can create a lookup table to get the team names for each game.
+
+```{r}
+team_lookup <- statcast_all_years %>%
+  select(game_pk, home_team, away_team) %>%
+  distinct()
+```
+
+We can then merge this into our `pa_data_final` dataset.
+
+```{r}
+pa_data_final <- pa_data_final %>%
+  left_join(team_lookup, by = "game_pk")
+```
+
+We can then create `batting_team` and `pitching_team` variables based on the `inning_topbot` variable.
+
+```{r}
+pa_data_final <- pa_data_final %>%
+  mutate(
+    batting_team = ifelse(inning_topbot == "Top", away_team, home_team),
+    pitching_team = ifelse(inning_topbot == "Top", home_team, away_team)
+  )
+```
+
+Let's make two final models:
+
+```{r}
+m_protection_blog_1_re = lmer(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + baserunner_state 
+  + outs_when_up + inning_grouped + (1 + next_batter_xwOBA || pitcher_year),
+  data = pa_filtered
+)
+
+summary(m_protection_blog_1_re)
+
+m_protection_blog_1_fe = feols(
+  pa_xwOBA ~ batter_xwOBA + next_batter_xwOBA +
+    current_matchup_advantage + baserunner_state + outs_when_up + inning_grouped |
+    batter_year + pitcher_year,
+  data = pa_data_final
+)
+
+summary(m_protection_blog_1_fe)
+```
+
+```{r}
+m_protection_blog_1_output = texreg(
+  m_protection_blog_1,
+  custom.model.names = c("Final Model: Random Effects on PA xwOBA"),
+  custom.coef.map = list(
+    "(Intercept)" = "Intercept",
+    "batter_xwOBA" = "Batter xwOBA",
+    "next_batter_xwOBA" = "Next Batter xwOBA",
+    "current_matchup_advantage" = "Current Matchup",
+    "baserunner_state1B" = "1B",
+    "baserunner_state1B-2B" = "1B-2B",
+    "baserunner_state1B-3B" = "1B-3B",
+    "baserunner_state2B" = "2B",
+    "baserunner_state2B-3B" = "2B-3B",
+    "baserunner_state3B" = "3B",
+    "baserunner_stateLoaded" = "Loaded",
+    "outs_when_up" = "Outs"
+  ),
+  stars = c(0.001, 0.01, 0.05, 0.1),
+  custom.note = "Standard errors in parentheses. *** p < 0.001, ** p < 0.01, * p < 0.05, . p < 0.1",
+  caption = "Final Model: Random Effects Model for Plate Appearance xwOBA",
+  single.row = TRUE,
+  digits = 4
+)
+
+# Post-process using base R compatible piping
+m_protection_blog_1_output <- m_protection_blog_1_output |>
+  (\(x) gsub("pitcher_year\\.1 next_batter_xwOBA", "PitcherYear × Next Batter xwOBA", x))() |>
+  (\(x) gsub("pitcher_year", "PitcherYear", x))() |>
+  (\(x) gsub("batter_year", "BatterYear", x))()
+
+writeLines(m_protection_blog_1_output, "outputs/m_protection_blog_1_output.tex")
+```
+
+Let's make a final plot for the posterboard:
+```{r}
+############################################################
+## Plot: on-deck xwOBA effect on pa_xwOBA vs pa_xBA --------
+############################################################
+library(fixest)   # for feols
+library(broom)    # tidy() on fixest objects
+library(dplyr)
+library(ggplot2)
+library(pubtheme)
+
+pa_data_final = readRDS("data/pa_data_final.rds") # Load your data)
+
+m_protection_xBA <- feols(
+  pa_xBA ~ next_batter_xwOBA + current_matchup_advantage + 
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff | 
+    batter_year + pitcher_year + batting_team_game,  # Fixed effects
+  data = pa_data_final
+)
+
+m_protection_1a <- feols(
+  pa_xwOBA ~ next_batter_xwOBA + current_matchup_advantage + baserunner_state + outs_when_up |
+    batter_year + pitcher_year + batting_team_game,
+  data = pa_data_final
+)
+
+
+# --- tidy → extract estimate & SE -------------------------
+coefs <- bind_rows(
+  tidy(m_protection_1a, conf.int = TRUE)  %>% 
+    filter(term == "next_batter_xwOBA")   %>% 
+    mutate(outcome = "pa_xwOBA"),
+  tidy(m_protection_xBA, conf.int = TRUE) %>% 
+    filter(term == "next_batter_xwOBA")   %>% 
+    mutate(outcome = "pa_xBA")
+) %>%
+  # scale to +0.10 change
+  mutate(
+    estimate = estimate * 0.10,
+    ymin     = conf.low  * 0.10,
+    ymax     = conf.high * 0.10
+  )
+
+# --- bar + error bar plot --------------------------------
+# Rename the outcome labels for nicer axis text
+coefs <- coefs %>%
+  mutate(outcome = dplyr::recode(outcome,
+                                 pa_xwOBA = "PA xwOBA",
+                                 pa_xBA   = "PA xBA"))
+
+# make the x-axis a factor to keep order stable
+coefs$outcome <- factor(coefs$outcome, levels = c("PA xBA", "PA xwOBA"))
+
+ggplot(coefs, aes(x = outcome, y = estimate)) +
+  geom_hline(yintercept = 0, colour = "grey50", linewidth = 0.4) +     # zero line
+  geom_point(size = 4, colour = "#133d7a") +
+  geom_errorbar(aes(ymin = ymin, ymax = ymax),
+                width = 0.10, colour = "#133d7a") +
+  geom_text(aes(label = sprintf("%.3f", estimate)),
+            position = position_nudge(x = 0.25, y = -0.0003),                # nudge right
+            vjust = -0.3, colour = "#133d7a", size = 5) +
+  labs(title = "Coefficient of +0.100 on-deck xwOBA",
+       y = expression(Delta~"expected outcome"), x = NULL) +
+  theme_pub() +
+  theme(panel.grid.major.x = element_blank())
+```
+
+
+The following will be an amalgamation of code to best prepare my thesis.
+```{r}
+pa_data_final <- pa_data_final %>%
+  mutate(pa_xBA = ifelse(final_event %in% c("strikeout", "strikeout_double_play"), 0, pa_xBA))
+
+# Calculate means
+means <- pa_data_final %>%
+  summarise(
+    `Batter xwOBA` = mean(batter_xwOBA, na.rm = TRUE),
+    `Next Batter xwOBA` = mean(next_batter_xwOBA, na.rm = TRUE),
+    `Expected Batting Avg (xBA)` = mean(pa_xBA, na.rm = TRUE),
+    `Walk Probability` = mean(is_walk, na.rm = TRUE),
+    `Strikeout Probability` = mean(is_strikeout, na.rm = TRUE),
+    `Extra-Base Hit Probability` = mean(is_extra_base_hit, na.rm = TRUE),
+    `In-Play Out Probability` = mean(is_ip_out, na.rm = TRUE),
+    `Outs When Up` = mean(outs_when_up, na.rm = TRUE),
+    `Run Differential` = mean(run_diff, na.rm = TRUE)
+  )
+
+# Calculate SDs only for continuous variables
+sds <- pa_data_final %>%
+  summarise(
+    `Batter xwOBA` = sd(batter_xwOBA, na.rm = TRUE),
+    `Next Batter xwOBA` = sd(next_batter_xwOBA, na.rm = TRUE),
+    `Expected Batting Avg (xBA)` = sd(pa_xBA, na.rm = TRUE),
+    `Walk Probability` = NA,
+    `Strikeout Probability` = NA,
+    `Extra-Base Hit Probability` = NA,
+    `In-Play Out Probability` = NA,
+    `Outs When Up` = sd(outs_when_up, na.rm = TRUE),
+    `Run Differential` = sd(run_diff, na.rm = TRUE)
+  )
+
+# Combine into one table
+desc_table <- bind_rows(means, sds) %>%
+  pivot_longer(everything(), names_to = "Variable", values_to = "Value") %>%
+  group_by(Variable) %>%
+  mutate(Stat = c("Mean", "SD")) %>%
+  pivot_wider(names_from = Stat, values_from = Value)
+
+# Round numbers
+desc_table <- desc_table %>%
+  mutate(across(c(Mean, SD), ~ round(as.numeric(.), 3)))
+
+# Print LaTeX table
+desc_xtable <- xtable(desc_table,
+                      caption = "Descriptive Statistics for Key Variables",
+                      label = "tab:desc_stats",
+                      align = c("l", "l", "c", "c"))
+
+print(desc_xtable, type = "latex", file = "outputs/descriptive_stats_table.tex",
+      caption.placement = "top",
+      include.rownames = FALSE,
+      floating = TRUE)
+
+
+```
+
+To ensure the validity of our model, we shuffled the `next_batter_xwOBA` variable and re-ran the model. We can then compare the RMSE of the shuffled model to the original model.
+
+```{r}
+test <- pa_data_final %>%
+  group_by(batting_team_game) %>%
+  mutate(next_batter_xwOBA_shuffled = sample(next_batter_xwOBA)) %>%
+  ungroup()
+
+m_placebo <- feols(
+  pa_xwOBA ~ next_batter_xwOBA_shuffled + current_matchup_advantage + 
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff | 
+    batter_year + pitcher_year + batting_team_game,
+  data = test
+)
+
+summary(m_placebo)
+
+# Get RMSE for the original model
+m_protection_1a <- feols(
+  pa_xwOBA ~ next_batter_xwOBA + current_matchup_advantage + 
+    next_matchup_advantage + baserunner_state + outs_when_up + run_diff | 
+    batter_year + pitcher_year + batting_team_game,
+  data = pa_data_final
+)
+
+summary(m_protection_1a)
+
+m_protection_1_rmse <- sqrt(mean(residuals(m_protection_1a)^2))
+
+m_placebo_rmse <- sqrt(mean(residuals(m_placebo)^2))
+```
+
+```{r}
+library(fixest)
+library(xtable)
+library(dplyr)
+
+# Extract summary info
+sum_original <- summary(m_protection_1a)
+sum_placebo <- summary(m_placebo)
+
+# Get coefficient, standard error, p-value
+coef_orig <- sum_original$coeftable["next_batter_xwOBA", "Estimate"]
+se_orig <- sum_original$coeftable["next_batter_xwOBA", "Std. Error"]
+pval_orig <- sum_original$coeftable["next_batter_xwOBA", "Pr(>|t|)"]
+
+coef_placebo <- sum_placebo$coeftable["next_batter_xwOBA_shuffled", "Estimate"]
+se_placebo <- sum_placebo$coeftable["next_batter_xwOBA_shuffled", "Std. Error"]
+pval_placebo <- sum_placebo$coeftable["next_batter_xwOBA_shuffled", "Pr(>|t|)"]
+
+# Calculate RMSEs
+rmse_orig <- sqrt(mean(residuals(m_protection_1a)^2))
+rmse_placebo <- sqrt(mean(residuals(m_placebo)^2))
+
+# Assemble results
+results_df <- data.frame(
+  Model = c("Original Model", "Shuffled Model"),
+  Coefficient = c(coef_orig, coef_placebo),
+  StdError = c(se_orig, se_placebo),
+  PValue = c(pval_orig, pval_placebo),
+  RMSE = c(rmse_orig, rmse_placebo)
+)
+
+# Format numeric columns
+results_df <- results_df %>%
+  mutate(
+    Coefficient = sprintf("%.4f", Coefficient),
+    StdError = sprintf("%.4f", StdError),
+    PValue = sprintf("%.4f", PValue),
+    RMSE = sprintf("%.8f", RMSE)
+  )
+
+# Convert to LaTeX table
+xtable_obj <- xtable(results_df,
+                     caption = "Comparison of Original and Shuffled Models",
+                     label = "tab:model_comparison",
+                     align = c("l", "l", "c", "c", "c", "c"))
+
+# Save Latex table
+print(xtable_obj, type = "latex", file = "outputs/model_shuffling_output.tex",
+      caption.placement = "top",
+      include.rownames = FALSE,
+      floating = TRUE,
+      table.placement = "H",
+      align = c("l", "l", "c", "c", "c", "c"),
+      add.to.row = list(pos = list(-1), command = "\\hline"))
+
+# Print LaTeX code
+print(xtable_obj, include.rownames = FALSE)
+
+```
+
+Code for simulation:
+```{r}
+pa_data_final = readRDS("data/pa_data_final.rds")
+```
+
+```{r}
+## ------------------------------------------------------------------
+## 0.  Libraries  ----------------------------------------------------
+## ------------------------------------------------------------------
+packages <- c(
+  "dplyr","tidyr","forcats","glmmTMB","ggplot2","magrittr",  # your originals
+  "brms","cmdstanr"                                          # NEW
+)
+installed <- rownames(installed.packages())
+if (any(!packages %in% installed))
+  install.packages(setdiff(packages, installed))
+suppressPackageStartupMessages(lapply(packages, require, character.only = TRUE))
+
+## ------------------------------------------------------------------
+## 1.  Prepare 2024 plate-appearance data  ---------------------------
+## ------------------------------------------------------------------
+# pa_filtered is assumed to already exist in memory
+pa2024_raw <- pa_data_final %>% filter(game_year == 2024)
+
+map_outcome <- function(x){
+  dplyr::case_when(
+    x %in% c("single","field_error")                ~ "single",
+    x ==  "double"                                  ~ "double",
+    x ==  "triple"                                  ~ "triple",
+    x ==  "home_run"                                ~ "homerun",
+    x %in% c("strikeout","strikeout_double_play")   ~ "strikeout",
+    TRUE                                            ~ "in_play_out"
+  )
+}
+
+pa2024 <- pa2024_raw %>% 
+  mutate(
+    outcome = factor(
+      map_outcome(final_event),
+      levels = c("single","double","triple",
+                 "homerun","in_play_out","strikeout")
+    ),
+    current_matchup_advantage = ifelse(
+      (batter_handedness == "R" & pitcher_handedness == "L") |
+      (batter_handedness == "L" & pitcher_handedness == "R"), 1L, 0L
+    ),
+    baserunner_state = forcats::fct_na_value_to_level(baserunner_state, "Empty"),
+    inning_grouped   = forcats::fct_na_value_to_level(inning_grouped,   "1"),
+    pitcher_year     = factor(pitcher_year)
+  ) %>% 
+  select(-final_event)
+
+## ------------------------------------------------------------------
+## 2.  Season-long batter outcome probabilities ----------------------
+## ------------------------------------------------------------------
+season_long_probs <- pa2024 %>% 
+  group_by(batter, outcome) %>% 
+  summarise(n = n(), .groups = "drop") %>% 
+  group_by(batter) %>% 
+  mutate(total = sum(n), prob = n / total) %>% 
+  select(batter, outcome, prob) %>% 
+  pivot_wider(names_from = outcome, values_from = prob, values_fill = 0) %>% 
+  rename_with(~ paste0("prob_", .), -batter)
+
+pa2024 <- pa2024 %>% left_join(season_long_probs, by = "batter")
+
+# Fill any NA profiles with overall means (brand-new batters, if any)
+overall_probs_means <- overall_probs %>%
+  summarise(across(starts_with("prob_"), \(x) mean(x, na.rm = TRUE)))
+
+## ------------------------------------------------------------------
+## 3.  Create one-hot columns for each outcome -----------------------
+## ------------------------------------------------------------------
+event_types <- c("single","double","triple",
+                 "homerun","strikeout","in_play_out")
+for (ev in event_types) {
+  pa2024[[paste0("is_", ev)]] <- as.integer(pa2024$outcome == ev)
+}
+
+## ------------------------------------------------------------------
+## 4.  Fit Multinomial Fixed Effects Model ----
+## ------------------------------------------------------------------
+library(nnet)     # for multinom
+library(dplyr)
+
+# 6-level factor in desired order
+pa2024$outcome6 <- factor(pa2024$outcome,
+                          levels = c("single","double","triple",
+                                     "homerun","in_play_out","strikeout"))
+
+# make sure FE vars are factors
+pa2024$batter_year  <- factor(pa2024$batter_year)
+pa2024$pitcher_year <- factor(pa2024$pitcher_year)
+
+multi_formula <- outcome6 ~
+  batter_xwOBA + next_batter_xwOBA + current_matchup_advantage +
+  baserunner_state + outs_when_up + inning_grouped +
+  batter_year + pitcher_year          # fixed effects as factors
+
+multi_fit <- multinom(
+  formula = multi_formula,
+  data    = pa2024,
+  MaxNWts = 80000,    # raise if you have many factor levels
+  trace   = FALSE
+)
+
+
+############################################################
+## 5.  Attach fitted probabilities ------------------------
+############################################################
+prob_mat <- predict(multi_fit, type = "probs")
+out_names <- c("single","double","triple","homerun","in_play_out","strikeout")
+colnames(prob_mat) <- paste0("prob_", out_names)
+
+# overwrite / add the prob_* columns
+pa2024[ , paste0("prob_", out_names)] <- prob_mat
+
+############################################################
+## 6.  Build a nine-man lineup ----------------------------
+############################################################
+decile_cuts <- quantile(pa2024$batter_xwOBA, probs = seq(0, 1, 0.1))
+pa2024 <- pa2024 %>% 
+  mutate(xwoba_decile = cut(batter_xwOBA,
+                            breaks = decile_cuts,
+                            include.lowest = TRUE,
+                            labels = FALSE))
+
+lineup9 <- pa2024 %>% 
+  filter(xwoba_decile >= 2) %>% 
+  count(batter, batter_xwOBA, xwoba_decile, sort = TRUE) %>% 
+  group_by(xwoba_decile) %>% slice(1) %>% 
+  ungroup() %>% slice_head(n = 9) %>% pull(batter)
+
+lineup_df <- pa2024 %>% 
+  filter(batter %in% lineup9) %>% 
+  group_by(batter) %>% slice(1) %>% ungroup() %>% 
+  select(batter, batter_xwOBA, batter_handedness, batter_year)
+
+############################################################
+## 7.  Helper functions -----------------------------------
+############################################################
+base_state_lbl <- function(bases){
+  switch(paste0(bases, collapse = ""),
+         "000"="Empty","100"="1B","010"="2B","001"="3B",
+         "110"="1B-2B","101"="1B-3B","011"="2B-3B","111"="Loaded")
+}
+advance_runners <- function(bases, outcome){
+  score <- 0L
+  if(outcome=="single"){ score <- bases[3]; bases <- c(1, bases[1], bases[2]) }
+  else if(outcome=="double"){ score <- bases[3]+bases[2]; bases <- c(0,1,bases[1]) }
+  else if(outcome=="triple"){ score <- sum(bases); bases <- c(0,0,1) }
+  else if(outcome=="homerun"){ score <- 1+sum(bases); bases <- c(0,0,0) }
+  list(bases=bases, score=score)
+}
+predict_probs_mn <- function(new_row, model){
+  pr <- as.numeric(predict(model, newdata = new_row, type = "probs"))
+  names(pr) <- c("single","double","triple","homerun","in_play_out","strikeout")
+  pr
+}
+
+############################################################
+## 8.  Dynamic-probability simulation ---------------------
+############################################################
+simulate_game_mn <- function(model, lineup, pa_ref, n_innings = 9L){
+  pitcher_pick <- sample(levels(pa_ref$pitcher_year), 1)
+  bases <- c(0,0,0); outs <- 0L; inning <- 1L; score <- 0L
+  pos <- 1L; NL <- nrow(lineup)
+  
+  while(inning <= n_innings){
+    bat <- lineup[pos, ]
+    next_b_idx <- pos %% NL + 1L
+    bat$next_batter_xwOBA <- lineup[next_b_idx, "batter_xwOBA", drop = TRUE]
+    
+    pa_context <- bat %>% 
+      mutate(
+        current_matchup_advantage = ifelse(
+          (batter_handedness=="R" & pa_ref$pitcher_handedness[match(pitcher_pick, pa_ref$pitcher_year)]=="L") |
+          (batter_handedness=="L" & pa_ref$pitcher_handedness[match(pitcher_pick, pa_ref$pitcher_year)]=="R"),
+          1L, 0L),
+        baserunner_state = factor(base_state_lbl(bases),
+                                  levels = levels(pa_ref$baserunner_state)),
+        outs_when_up     = outs,
+        inning_grouped   = factor(as.character(inning),
+                                  levels = levels(pa_ref$inning_grouped)),
+        pitcher_year     = factor(pitcher_pick,
+                                  levels = levels(pa_ref$pitcher_year))
+      )
+    
+    probs   <- predict_probs_mn(pa_context, model)
+    outcome <- sample(names(probs), 1, prob = probs)
+    
+    if(outcome %in% c("single","double","triple","homerun")){
+      adv   <- advance_runners(bases, outcome)
+      bases <- adv$bases
+      score <- score + adv$score
+    } else { outs <- outs + 1L }
+    
+    if(outs >= 3L){ inning <- inning + 1L; outs <- 0L; bases <- c(0,0,0) }
+    pos <- pos %% NL + 1L
+  }
+  score
+}
+
+set.seed(2025)
+n_sims <- 5000
+runs_dyn <- numeric(n_sims)
+pb <- txtProgressBar(min = 0, max = n_sims, style = 3)
+for(i in seq_len(n_sims)){
+  runs_dyn[i] <- simulate_game_mn(multi_fit, lineup_df, pa2024)
+  if(i %% 100 == 0) message("… finished ", i, " games")
+  setTxtProgressBar(pb, i)
+}
+close(pb)
+
+############################################################
+## 9.  Static comparator (season-profile probabilities) ----
+############################################################
+# outcome columns we’ll use everywhere
+outcomes <- c("single","double","triple",
+              "homerun","in_play_out","strikeout")
+
+# 9-a. season-long probabilities for every batter ------------
+static_probs <- pa2024 %>% 
+  count(batter, outcome, name = "n_outcome") %>%           # counts per batter/outcome
+  group_by(batter) %>% 
+  mutate(p = n_outcome / sum(n_outcome)) %>%               # convert to proportions
+  ungroup() %>% 
+  select(-n_outcome) %>% 
+  tidyr::pivot_wider(names_from = outcome,
+                     values_from = p,
+                     values_fill  = 0) %>%                 # fill missing outcomes with 0
+  # make sure every outcome column exists and in a fixed order
+  mutate(across(all_of(setdiff(outcomes, names(.))), \(x) 0)) %>% 
+  select(batter, all_of(outcomes))                         # final column order
+
+# 9-b. fallback vector: overall probabilities across *all* PA
+overall_static <- pa2024 %>% 
+  count(outcome, name = "n") %>% 
+  mutate(p = n / sum(n)) %>% 
+  select(-n) %>% 
+  tidyr::pivot_wider(names_from = outcome, values_from = p) %>% 
+  select(all_of(outcomes)) %>% 
+  as.numeric()
+names(overall_static) <- outcomes
+# quick sanity-check – should be ~1
+stopifnot(abs(sum(overall_static) - 1) < 1e-8)
+
+# 9-c. simulation function using season-profile probabilities
+simulate_game_static <- function(lineup, prob_tbl, default_probs, n_innings = 9L){
+  bases  <- c(0, 0, 0)
+  outs   <- 0L
+  inning <- 1L
+  score  <- 0L
+  pos    <- 1L
+  NL     <- nrow(lineup)
+  
+  while (inning <= n_innings) {
+    batter_id <- lineup$batter[pos]
+    
+    # look up this batter’s row; if absent, use fallback probabilities
+    row <- prob_tbl %>% filter(batter == batter_id)
+    probs <- if (nrow(row) == 1) as.numeric(row[1, -1]) else default_probs
+    names(probs) <- outcomes       # keep names for clarity
+    
+    outcome <- sample(outcomes, 1, prob = probs)
+    
+    if (outcome %in% c("single","double","triple","homerun")) {
+      adv   <- advance_runners(bases, outcome)
+      bases <- adv$bases
+      score <- score + adv$score
+    } else {
+      outs <- outs + 1L
+    }
+    
+    if (outs >= 3L) {
+      inning <- inning + 1L
+      outs   <- 0L
+      bases  <- c(0, 0, 0)
+    }
+    pos <- pos %% NL + 1L         # next spot in the order
+  }
+  score
+}
+
+# 9-d. run the static simulation -----------------------------
+runs_stat <- numeric(n_sims)
+
+# Run simulations with progress updates
+for (i in seq_len(n_sims)) {
+  runs_stat[i] <- simulate_game_static(lineup_df, static_probs, overall_static)
+  
+  # Print progress every 100 games (adjust as you like)
+  if (i %% 100 == 0 || i == n_sims) {
+    cat("Completed", i, "of", n_sims, "simulations\n")
+    flush.console()  # ensures immediate printing in RStudio Console
+  }
+}
+
+############################################################
+## 10.  Visualise & summarise ------------------------------
+############################################################
+results <- tibble(
+  runs = c(runs_dyn, runs_stat),
+  type = rep(c("Dynamic", "Static"), each = n_sims)
+)
+
+ggplot(results, aes(runs, fill = type)) +
+  geom_density(alpha = .45) +
+  labs(title = "Runs per game: dynamic vs. static",
+       x = "Runs", y = "Density")
+
+results %>% 
+  group_by(type) %>% 
+  summarise(mean = mean(runs), sd = sd(runs), .groups = "drop")
+
+
+```
+
+Potential other plots to do:
+
+```{r}
+ggplot(results, aes(x = type, y = runs, fill = type)) +
+  geom_violin(alpha = 0.4, width = 0.6) +
+  geom_jitter(width = 0.1, alpha = 0.2, size = 0.7) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 3, fill = "black") +
+  labs(title = "Runs per Game: Dynamic vs. Static Simulation",
+       x = NULL, y = "Runs per Game") +
+  theme_pub()
+```
+
+```{r}
+ggplot(results, aes(x = type, y = runs, fill = type)) +
+  geom_boxplot(alpha = 0.4, width = 0.6) +
+  stat_summary(fun = mean, geom = "point", shape = 23, size = 3, fill = "black") +
+  labs(title = "Runs per Game: Dynamic vs. Static Simulation",
+       x = NULL, y = "Runs per Game") +
+  theme_pub()
+```
+
+
+
+
+

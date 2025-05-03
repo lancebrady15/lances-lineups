@@ -42,7 +42,7 @@ For full methods and model outputs [view the full appendix here](../../appendix/
 
 
 ## Model #1: Pitcher Behavior
-To do models on pitcher behavior, we will need a new statcast dataframe that incorporates the baserunning data. We will create a new dataframe, `statcast_data_baserunning`, that contains the same columns as `statcast_data` but with the addition of the `pa_runner_average_value` column.
+To do models on pitcher behavior, we will need a new Statcast dataframe that incorporates the baserunning data. We will create a new dataframe, `statcast_data_baserunning`, that contains the same columns as `statcast_data` but with the addition of the `pa_runner_average_value` column.
 
 ### Pitch Velocity with Speed on Base
 

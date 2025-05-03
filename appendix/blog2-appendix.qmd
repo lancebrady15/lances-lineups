@@ -11,7 +11,9 @@ execute:
 ---
 
 ## Methods
+
 First, we will read in the data and libraries.
+
 ```{r}
 library(tidyverse)
 library(car)
@@ -23,6 +25,7 @@ statcast_data = readRDS("data/statcast_all_years.rds")
 ## Model I: Does having a variety of average swing characteristics across players on the roster help or hurt scoring?
 
 ### IA: Does Variation in Swing Length or Swing Speed individually help a Team across a season?
+
 First, let's create a unique ID for each Plate Appearance in `statcast_data`.
 
 For each at-bat, decide if the batter is on the `home_team` (if `inning_topbot` == "Bot") or the `away_team` (if `inning_topbot` == "Top"). This assignment handles trades automatically, because the data for each game has the correct home/away teams for that date. We will also filter to only include 2023 and 2024 data, as we only have swing profile data for those years of analysis.
@@ -67,5 +70,4 @@ batter_team_swing_stats <- statcast_blog2 %>%
     .groups="drop"
   )
 ```
-
 
